@@ -1,12 +1,13 @@
 # ANCHOR build plan
 
-This file says what to build, in what order, who can do it, and what each piece of work must leave behind. It holds 100 tasks in 15 lanes, sized at 666 human hours.
+This file says what to build, in what order, who can do it, and what each piece of work must leave behind. It holds 101 tasks in 15 lanes, sized at 673 human hours.
 
 - Design authority: the Deliverable II report in `docs/report/`. If this plan and the report disagree, stop and raise it.
 - Working rules for anyone (human or AI agent) who touches the repo: `AGENTS.md`.
+- Background and reasoning: `docs/implementation-plan.md`. Where it differs from this file, this file wins.
 - This file changes rarely. Live status is in GitHub Issues (one per task) and in `notes/`. Nobody edits this file to mark progress.
 
-Last planned: 2026-11-11.
+Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 to D14; review fixes; `ML-15` added).
 
 ## 1. Where we are
 
@@ -30,20 +31,24 @@ Last planned: 2026-11-11.
 
 ### 2.1 Decisions
 
-| # | Decision | Status on 2026-11-11 | What it blocks |
+| # | Decision | Status on 2026-11-12 | What it blocks |
 | --- | --- | --- | --- |
-| D1 | The three study laptops | Open. Team will name them | Every task tagged LAPTOPS; `HW-02` |
-| D2 | LiDAR device | iPhone 13 Pro | Nothing; it meets NFR-08 |
-| D3 | macOS access | Open. No Mac today; see 2.2 | Every task tagged MAC, which is 153 of 666 hours |
+| D1 | The three study laptops | Open. The team will send the model numbers; an agent then finds the manuals | Every task tagged LAPTOPS; `HW-02` |
+| D2 | LiDAR device | iPhone 13 Pro Max | Nothing; it meets NFR-08 |
+| D3 | macOS access | Decided 2026-11-12, for now: no Mac. CI builds the app on the public repository's free macOS runners, and it is sideloaded with a free Apple account. The paid Apple Developer Program is the fallback; see 2.2 | Every task tagged MAC, which is 153 of 673 hours |
 | D4 | Movement widgets in 3D | Yes, in scope | - |
 | D5 | Mat and anchoring | Decided here: printed marker mat, 6-DoF mat pose, the report's two homographies as fallback; see 2.4 | - |
 | D6 | VLM providers | Chosen by measured cost and accuracy in `VLM-02` | In-session VLM calls, graph building |
-| D7 | Server | The team's RTX 4070 Super PC behind a private tunnel; see 2.3 | - |
+| D7 | Server and GPU | One of two PCs, whichever is available: RTX 4070 Super (12 GB) or RTX A4000 (16 GB), behind a private tunnel. Never both at once; see 2.3 | - |
 | D8 | FYP-II calendar | Starts early 2027. Phases 0 and A run before it | - |
-| D9 | May the study use hand-reviewed graphs | Decide after `GR-06` | Study design |
+| D9 | May the study use hand-reviewed graphs | Decided 2026-11-12: no, it is an extra step. The study uses built graphs as they are. Revisit only if `GR-06` shows that accuracy suffers | Study design |
 | D10 | VLM calls go through the server, so API keys never ship in the app | Proposed here; confirm in `BOOT-03` | `VLM-01`, `IOS-12` |
+| D11 | Repository | Public, at `KHa321Z/ANCHOR`. Licence open (AGPL-3.0 is likely, because Ultralytics is AGPL-3.0). The report PDF goes in the repository | `BOOT-01` |
+| D12 | Recording each study laptop to train its detector (enrolment) | Open. Decide once component fine-tuning has been tested in depth (`ML-07`, `ML-10`, `ML-11`). Until then enrolment is the working path | Report deltas |
+| D13 | Unseen laptop | A fourth laptop, from a maker not among the study laptops, is brought in when the unseen test is due. It is never recorded for training or tuning | `ML-10` |
+| D14 | Agent workflow | Decided 2026-11-12: a task may start once its After tasks are merged, except after a gate; a new optional contract or configuration key needs one owner's approval. Recording days per laptop: open | `AGENTS.md` |
 
-Laptop criteria for D1: not Apple; two from one maker and one from another; available for the whole project with a spare bottom cover; a public service manual for the exact model number; an internal battery with a connector; between them a memory slot, an M.2 or 2.5-inch drive, and at least one screw hidden under a foot or label.
+Laptop criteria for D1: not Apple; two from one maker and one from another; available for the whole project with a spare bottom cover; a public service manual for the exact model number; an internal battery with a connector; between them a memory slot, an M.2 or 2.5-inch drive, and at least one screw hidden under a foot or label. The unseen laptop (D13) also needs a public service manual and an internal battery connector.
 
 ### 2.2 No Mac: what works
 
@@ -51,14 +56,16 @@ An iOS app can only be compiled and signed by Xcode on macOS. There is no way ar
 
 | Route | What it gives | Limits | Verdict |
 | --- | --- | --- | --- |
-| A used Apple-silicon Mac mini, or regular access to a lab Mac | Xcode, a debugger on the phone, Instruments, installs with a free Apple account (each lasts 7 days) | Cost or access | Best. Aim to have it when Phase B starts |
-| GitHub Actions macOS runners plus TestFlight | Builds, signs and delivers the app with no Mac | Needs the paid Apple Developer Program. No debugger, no Instruments. Every change costs a CI build | Works. The planned fallback |
+| A used Apple-silicon Mac mini, or regular access to a lab Mac | Xcode, a debugger on the phone, Instruments, installs with a free Apple account (each lasts 7 days) | Cost or access | Best, but not available now |
+| GitHub Actions macOS runners plus TestFlight | Builds, signs and delivers the app with no Mac | Needs the paid Apple Developer Program. No debugger, no Instruments. Every change costs a CI build | Works. The fallback if sideloading breaks; worth a second look before the study |
 | Rented cloud Mac over remote desktop | The Xcode interface for signing setup and Reality Composer Pro | The phone cannot be plugged in, so installs still go through TestFlight | Occasional setup only |
-| Unofficial Windows sideloading with a free Apple account | Installs a CI-built app without the paid programme | Unofficial, fragile, 7-day expiry | Stopgap |
+| CI build plus Windows sideloading with a free Apple account | Installs a CI-built, unsigned app without the paid programme | Unofficial tool, 7-day expiry, at most three apps, no debugger | Chosen for now (D3) |
 | macOS on non-Apple hardware | - | Against Apple's licence terms; unreliable with Xcode | Do not use |
 | Switch to Android and ARCore | Builds on Windows and Linux | Contradicts NFR-08 and the LiDAR contact check; a redesign | Last resort |
 
-CI cost on GitHub's current price list: standard runners are free for public repositories. For a private repository on the free plan, macOS minutes cost about ten times Linux minutes, and the free monthly allowance covers roughly 190 macOS minutes at the rates listed on 2026-11-11. Check GitHub's billing page before relying on it.
+CI cost: the repository is public (D11), and standard GitHub-hosted runners, macOS included, are free for public repositories. If it ever goes private on the free plan, macOS minutes count ten times, so the 2,000 free minutes become about 200.
+
+Rules for the sideload route: use an Apple account made for the project, not a personal one; check that the tool supports the phone's iOS version, and do not update iOS during the project; re-install before each bench or study week, because an install lasts 7 days.
 
 What needs no Mac at all: every Python package, `core/` (the Swift toolchain runs on Linux, WSL2 and Windows), assets (Blender), recordings (the Stray Scanner app writes RGB video, LiDAR depth, camera poses and intrinsics), Core ML export (Ultralytics supports it on macOS or x86 Linux, so use WSL2 or CI on a Windows PC), and checking USDZ assets (AR Quick Look on the phone).
 
@@ -69,16 +76,18 @@ The plan is built around this:
 3. The Xcode project is generated from `ios/project.yml`, so project structure is edited as text.
 4. A benchmark screen, a debug overlay and exportable logs replace the debugger.
 
-Result: 513 of 666 hours carry no MAC tag. D3 must be settled by the time Phase A ends, not before.
+Result: 520 of 673 hours carry no MAC tag. `HW-04` proves the D3 route with a hello-world install.
 
 ### 2.3 The server
 
-The RTX 4070 Super PC is enough. The server's work is light: MobileSAM for outlines, the graph builder (which mostly calls the hosted VLM), two small stores, the VLM proxy, and optionally one localisation model.
+Either PC is enough (D7). The server's work is light: MobileSAM for outlines, the graph builder (which mostly calls the hosted VLM), two small stores, the VLM proxy, and optionally one localisation model.
 
 - Software: Linux or WSL2, NVIDIA drivers, Python, FastAPI. No public IP and no router port forwarding.
 - Exposure: Tailscale on the PC and on the iPhone. The phone reaches the PC from any network, nothing is open to the internet, and Tailscale provides the HTTPS certificate iOS expects. The free personal plan is enough. If an examiner's device must reach it without Tailscale, add Cloudflare Tunnel then.
 - Keep an API key on every route regardless.
-- Operations: the PC must be on and awake during sessions. Never train while a bench or study session is using the server; training already ran this PC out of memory twice.
+- Operations: the PC must be on and awake during sessions. Never train while a bench or study session is using the server; training already ran the 4070 Super PC out of memory twice.
+- Only one PC is in use at a time, and `docs/hardware.md` names it. When access to one ends, `data/`, `weights/` and `.env` move to the other, and the manifest hashes are checked before work resumes.
+- Every timing in a note names the PC it was measured on.
 - If the server is unreachable, the app keeps working as the report specifies: cached graphs, boxes instead of outlines, hazard banners that stay up.
 
 ### 2.4 The mat
@@ -95,10 +104,10 @@ Work is split into lanes. A lane owns folders, and only tasks in that lane chang
 
 | Lane | What it builds | Paths it owns | Human owner | Hours |
 | --- | --- | --- | --- | --- |
-| BOOT | Bootstrap | repo root, `contracts/`, `scripts/`, `.github/` | all three | 19 |
+| BOOT | Bootstrap | repo root, `contracts/`, `scripts/`, `.github/` | all three | 21 |
 | HW | Hardware and accounts | `docs/hardware.md`, `docs/vlm-costs.md` | H-APP | 15 |
 | CORE | Guidance logic (Swift, builds on Linux) | `core/` | H-SYS | 63 |
-| ML | Models and datasets (Python) | `ml/` | H-ML | 83 |
+| ML | Models and datasets (Python) | `ml/` | H-ML | 88 |
 | REF | Reference pipeline on recordings (Python) | `pyref/` | H-ML | 40 |
 | SRV | Server | `server/` except the two folders below | H-SYS | 20 |
 | GR | Procedure graphs | `server/graph_builder/`, `graphs/`, `resources/` | H-SYS | 47 |
@@ -110,13 +119,15 @@ Work is split into lanes. A lane owns folders, and only tasks in that lane chang
 | INT | Integration | no code of its own; fixes go to the owning lane | H-APP | 22 |
 | ST | User study | `docs/study/` | all three | 58 |
 | DOC | Reports | `docs/deliverables/` | all three | 45 |
-| | **Total** | | | **666** |
+| | **Total** | | | **673** |
 
-Three human roles, to be assigned to names: **H-SYS** (logic, server, graphs, evaluation), **H-ML** (models, data, reference pipeline), **H-APP** (iOS, assets, hardware). Each owner reviews and merges the work in their lanes.
+Each lane also owns its own workflow files, `.github/workflows/<lane>-*.yml`, and the entry point that its stub target in the root Makefile calls (`AGENTS.md` Section 5).
+
+Three human roles, placeholders until they are assigned to names: **H-SYS** (logic, server, graphs, evaluation), **H-ML** (models, data, reference pipeline), **H-APP** (iOS, assets, hardware). Each owner reviews and merges the work in their lanes.
 
 **Who** column:
 
-- **Agent**: an AI coding agent does the work end to end; the lane's human owner reviews and merges. 57 tasks, 337 hours of human time for specifying, reviewing and checking.
+- **Agent**: an AI coding agent does the work end to end; the lane's human owner reviews and merges. 58 tasks, 344 hours of human time for specifying, reviewing and checking.
 - **Pair**: a human at the keyboard or bench with an agent. 156 hours.
 - **Human**: cannot be delegated: buying, printing, recording, auditing labels, the study. 173 hours.
 
@@ -124,16 +135,17 @@ Three human roles, to be assigned to names: **H-SYS** (logic, server, graphs, ev
 
 | Tag | Meaning |
 | --- | --- |
-| MAC | A working macOS build route (D3) |
-| PHONE | The iPhone 13 Pro in hand |
+| MAC | The CI build and sideload route (D3) |
+| PHONE | The iPhone 13 Pro Max in hand |
 | LAPTOPS | The study laptops in hand (D1) |
 | KIT | The tool kit in hand |
 | MAT | The printed mat |
-| GPU | The 4070 Super PC, one job at a time |
+| GPU | The active GPU PC (D7), one job at a time. `data/` lives there, so a GPU task can also read data |
+| DATA | Reads recordings, datasets or manuals, which are not in git. It runs where `data/` is: the active GPU PC |
 | KEYS | VLM API keys on the server |
 | PEOPLE | Study participants |
 
-An agent may write code for a tagged task, but only a human with the hardware can close it.
+An agent may write code for any tagged task. For GPU, DATA and KEYS it can also run the task when its session is on the active GPU PC (`AGENTS.md` Section 17). For the other tags, only a human with the hardware can close the task.
 
 Review is the bottleneck, not writing. Each human keeps at most three agent pull requests open for review at a time.
 
@@ -158,7 +170,8 @@ anchor/
   data-manifests/   file lists and hashes of datasets and recordings
   notes/            one hand-off note per finished task
   docs/             report/, decisions/, recording/, study/, deliverables/,
-                    hardware.md, measurements.md, report-deltas.md, risks.md
+                    hardware.md, measurements.md, report-deltas.md, risks.md,
+                    implementation-plan.md
   scripts/          repo tooling
 ```
 
@@ -166,24 +179,31 @@ Datasets, recordings, model weights and API keys never enter git.
 
 ## 5. Contracts
 
-`BOOT-03` writes these first. After that, a contract changes only through a pull request that touches `contracts/` alone, bumps its version, and is approved by every lane owner who uses it.
+`BOOT-03` writes these first. After that, a change to an existing field goes through a pull request that touches `contracts/` alone, bumps its version, and is approved by every lane owner who uses it. A new optional field or key may go in the task's own pull request with one owner's approval (D14).
 
 | # | Contract | File | Used by |
 | --- | --- | --- | --- |
 | C1 | Procedure graph: schema from report Section 4.9, plus the structured motion field | `contracts/graph.schema.json` | CORE, GR, IOS |
 | C2 | Observations: fact readings with scores and hidden share, contacts, registration trust, timestamps | `contracts/observations.schema.json` | REF, CORE, IOS, EV |
 | C3 | Configuration: every setting in report Table 6.3, with provisional values | `config/anchor.default.json` and its schema | all |
-| C4 | Recording: a clip folder with RGB, depth, poses, intrinsics, events, metadata. Stray Scanner clips convert into it | `contracts/recording.md` | DATA, REF, IOS, ML |
-| C5 | Server API | `contracts/server.openapi.yaml` | SRV, GR, VLM, IOS |
+| C4 | Recording: a clip folder with RGB, depth, poses, intrinsics, events, metadata, and an optional occluder mask. Stray Scanner clips convert into it | `contracts/recording.md` | DATA, REF, IOS, ML |
+| C5 | Server API. A VLM reply carries the model, prompt version and latency, so the app can log them (report Table 4.10) | `contracts/server.openapi.yaml` | SRV, GR, VLM, IOS |
 | C6 | Session log: one JSON line per event | `contracts/log.schema.json` | CORE, EV, IOS |
 | C7 | Model card: name, input size, classes, output decoding, export settings | `contracts/model-card.schema.json` | ML, REF, IOS |
-| C8 | Asset manifest: tool names, files, tip offset, allowed motions | `contracts/asset-manifest.schema.json` | AS, GR, IOS |
+| C8 | Asset manifest: tool names, the detector class of each tool (C9), files, tip offset, allowed motions | `contracts/asset-manifest.schema.json` | AS, GR, IOS |
 | C9 | Class sheet: component, tool and screw-state classes with one definition each | `contracts/classes.yaml` | ML, DATA, REF |
 | C10 | Widget commands: what the trigger policy hands the renderer | `contracts/widget-commands.schema.json` | CORE, IOS |
 
+`BOOT-03` also answers, in its list of open questions, four report points that every agent would otherwise stop on:
+
+1. A step's hazard note is shown as W5 (report 5.9.1), and any W5 dims the other widgets (6.6.1). Say what is dimmed during such a step and what confidence the note carries.
+2. Whether an unknown frame ends a gate run or only pauses it (report Table 5.15). Make it a configuration option.
+3. Whether "every step before the cover refit must be done" (report 5.2.3) is a precondition in the graph or a rule in the sequencer.
+4. How the graph's 0-to-1 layout becomes millimetres on the face.
+
 ## 6. Where to start
 
-1. **Today, humans, all at once.** Start `HW-01` (laptops), `HW-04` (macOS route), `HW-05` (server PC), `HW-06` (VLM keys), `HW-07` (Stray Scanner test clip), `HW-08` (phone mount). None depends on anything.
+1. **Today, humans, all at once.** Start `HW-01` (laptops), `HW-04` (build and sideload test), `HW-05` (server PC), `HW-06` (VLM keys), `HW-07` (Stray Scanner test clip), `HW-08` (phone mount). None depends on anything.
 2. **Today, one human with an agent.** `BOOT-01`, the repository skeleton.
 3. **Next, in parallel.** Agents take `BOOT-02`, `BOOT-04` and `AS-01`. One human pairs on `BOOT-03`, the contracts. All three humans review it. Nothing in Phase A starts before it merges.
 4. **The first wave.** When `BOOT-03` merges, nine tasks open at once: `CORE-01`, `CORE-03`, `CORE-11`, `ML-01`, `SRV-01`, `AS-02`, `AS-03`, `EV-01`, `DATA-01`. They sit in different lanes, or in separate modules of one lane. `REF-01` joins them as soon as the `HW-07` test clip exists.
@@ -216,23 +236,27 @@ flowchart LR
 
 | Phase | Content | Hours | Tasks |
 | --- | --- | --- | --- |
-| 0 | Bootstrap, hardware and accounts | 36 | 13 |
-| A | Everything that needs no Apple build tools | 280 | 51 |
+| 0 | Bootstrap, hardware and accounts | 38 | 13 |
+| A | Work that needs no Apple build tools | 285 | 52 |
 | B | Device bring-up | 53 | 7 |
 | C | Slices | 47 | 6 |
 | D | Full system | 132 | 14 |
 | E | Tune, study, report | 118 | 9 |
+
+Phases are a calendar view. They are not a fence and not a label on a task: a task may start as soon as its After tasks are merged and any gate before it has passed, whatever phase it was planned in. The aim is to finish as much as possible before FYP-II.
 
 Phases 0 and A run before FYP-II. Phases B to E map onto its sixteen weeks: B in weeks 1 to 2, C in weeks 3 to 6, D in weeks 7 to 10, E in weeks 11 to 16. If the macOS route is ready early, start Phase B early.
 
 | Gate | Closes | Passes when | If it fails |
 | --- | --- | --- | --- |
 | GA | Phase A | `REF-05`: on laptop 1's two clean-run clips, the offline pipeline recognises at least 90% of steps | Fix perception in `pyref/` first. Do not port a pipeline that does not work offline |
-| G0 | Start of Phase B | `IOS-05`: all tier B models together take at most 150 ms per processed frame on the iPhone 13 Pro | Fewer crops per batch, smaller tool model, lower processing rate |
+| G0 | Phase B | `IOS-05`: all tier B models together take at most 150 ms per processed frame on the iPhone 13 Pro Max | Fewer crops per batch, smaller tool model, lower processing rate |
 | G1 | Phase C, first half | `IOS-11`: a person completes laptop 1's storage task guided by taps; rings within 5 mm of the screws | Fix registration and rendering before adding the camera |
 | G2 | Phase C | `IOS-13`: the same task driven by the camera meets NFR-02 (next step within 2 s, 95th percentile) on the bench; `ML-07` at 0.85 AP50 or better | Hold scope at one laptop and one task until it passes |
-| G3 | Phase D | `INT-01`: three laptops by three tasks run on the bench with all six widgets | Cut optional items first: `GR-07`, `SRV-05`, FR-17 |
+| G3 | Phase D | `INT-01`: three laptops by three tasks run on the bench with all six widgets | Cut optional items first: `SRV-05` and FR-17 (which has no task yet). `GR-07` is not optional: FR-21 is a Must |
 | G4 | Before the main study | `INT-02` configuration frozen; `EV-05` reports every NFR on the test split; the `ST-02` pilot shows novices make mistakes with the manual alone | Choose a harder task or laptop (report risk R-04) |
+
+A gate has passed only when a human adds the `gate-passed` label to the gate task's issue. Tasks after a gate are not ready until then (`AGENTS.md` Section 3).
 
 ## 8. Tasks
 
@@ -242,14 +266,14 @@ Acceptance numbers are this plan's proposals, not report requirements, except wh
 
 ### BOOT: Bootstrap
 
-Paths: repo root, `contracts/`, `scripts/`, `.github/`. Human owner: all three. Lane total: 19 h.
+Paths: repo root, `contracts/`, `scripts/`, `.github/`. Human owner: all three. Lane total: 21 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BOOT-01` | Repository skeleton: folders from Section 4, ignore rules, PR template, `notes/`, `docs/decisions/`, this file, AGENTS.md, the report PDF under `docs/report/` | Pair | - | - | 3 | Skeleton on `main`; branch protection on; a pointer file for any tool that expects a different name than AGENTS.md | ADR-001: repository visibility and licence |
-| `BOOT-02` | Makefile and Linux CI: `make setup`, `test-core`, `test-ml`, `test-server`, `lint` | Agent | - | BOOT-01 | 3 | CI is green on placeholder tests for the Swift package and both Python packages | Pinned tool versions |
-| `BOOT-03` | Contracts v0 (C1 to C10, Section 5) with fixtures | Pair | - | BOOT-01 | 12 | Every schema validates its fixtures in CI; all three humans approve the PR | One ADR per non-obvious choice; a list of open questions |
-| `BOOT-04` | `scripts/sync_issues.py`: one GitHub issue per task in this file, labelled by lane, phase and hardware tags | Agent | - | BOOT-01 | 1 | Every task ID has an issue; re-running the script changes nothing | - |
+| `BOOT-01` | Repository skeleton: folders from Section 4, ignore rules, PR template, CODEOWNERS (lane paths to owners, filled in when the roles have names), `.gitattributes` with the union merge rule for the three shared docs, `notes/`, `docs/decisions/`, this file, AGENTS.md, `docs/implementation-plan.md`, the report PDF under `docs/report/` | Pair | - | - | 3 | Skeleton on `main`; branch protection on; a pointer file for any tool that expects a different name than AGENTS.md | ADR: the repository is public (D11); the licence is still open |
+| `BOOT-02` | Makefile and Linux CI: every target in `AGENTS.md` Section 6, the later ones as stubs that call a lane-owned entry point; `make ci-<lane>`; `scripts/check_pr.py` (lane paths from the branch name, forbidden imports in `core/`, threshold literals, note present, no data or weights) | Agent | - | BOOT-01 | 5 | CI is green on placeholder tests for the Swift package and the Python packages (`ml/`, `pyref/`, `server/`, `eval/`, `tools/`); `check_pr.py` fails a pull request that breaks a rule | Pinned tool versions |
+| `BOOT-03` | Contracts v0 (C1 to C10, Section 5) with fixtures | Pair | - | BOOT-01 | 12 | Every schema validates its fixtures in CI; all three humans approve the PR | One ADR per non-obvious choice; the four points under the table in Section 5 answered; a list of the questions still open |
+| `BOOT-04` | `scripts/sync_issues.py`: one GitHub issue per task in this file, labelled by lane, wave and hardware tags; it also sets a `ready` label on a task whose After tasks are merged and whose gates have passed | Agent | - | BOOT-01 | 1 | Every task ID has an issue; re-running the script changes nothing | - |
 
 ### HW: Hardware and accounts
 
@@ -259,11 +283,11 @@ Paths: `docs/hardware.md`, `docs/vlm-costs.md`. Human owner: H-APP. Lane total: 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `HW-01` | Choose the three laptops and get spare bottom covers | Human | - | - | 3 | `docs/hardware.md` lists exact model numbers, service-manual links, screw types, and whether the battery has an internal connector | How each laptop meets the criteria in Section 2.1 |
 | `HW-02` | Buy two identical tool kits | Human | - | HW-01 | 1 | Kits in hand; a photo and caliper measurements of each tool in `docs/hardware.md` | Measurements (they feed AS-02) |
-| `HW-03` | Print the mat on matte stock at 100% scale | Human | - | AS-01 | 1 | The printed 100 mm bar measures 100 mm within 0.5 mm | Measured bar length; print shop settings |
-| `HW-04` | Decide the macOS route (Section 2.2) and, for the CI route, enrol in the Apple Developer Program | Human | - | - | 3 | ADR merged; the route is tested by installing a hello-world build on the iPhone | ADR-003; cost; minutes per build |
-| `HW-05` | Prepare the GPU PC as the server: Linux or WSL2, NVIDIA drivers, Tailscale on the PC and the iPhone | Pair | GPU | - | 4 | The iPhone, on mobile data, loads an HTTPS hello page served from the PC | OS, RAM, how the PC is kept awake; the GPU lock file path and the session calendar, all in `docs/hardware.md` |
-| `HW-06` | VLM accounts, API keys and a monthly spending cap; keys only in `.env` on the server | Human | - | - | 1 | A test call succeeds from the server for each candidate provider | Current prices in `docs/vlm-costs.md` |
-| `HW-07` | Install Stray Scanner; record and transfer a 30-second test clip | Human | PHONE | - | 1 | The clip folder has `rgb.mp4`, `depth/`, `odometry.csv` and `camera_matrix.csv` | Transfer method that worked |
+| `HW-03` | Print the mat on matte stock at 100% scale; record a 30-second moving clip of the empty mat, and one with hands over some markers | Human | PHONE | AS-01, HW-07 | 1 | The printed 100 mm bar measures 100 mm within 0.5 mm; both clips hold the files `HW-07` lists | Measured bar length; print shop settings |
+| `HW-04` | Prove the D3 route (Section 2.2): a hello-world app built by CI on the public repository and sideloaded from Windows with a project Apple account | Human | PHONE | - | 3 | ADR merged; the hello-world build runs on the iPhone 13 Pro Max | ADR; tool and iOS version; minutes per build and install; what failed, if anything |
+| `HW-05` | Prepare the active GPU PC (D7) as the server: Linux or WSL2, NVIDIA drivers, Tailscale on the PC and the iPhone; write the steps for handing over to the other PC | Pair | GPU | - | 4 | The iPhone, on mobile data, loads an HTTPS hello page served from the PC | Which PC is active; OS, RAM, how the PC is kept awake; the GPU lock file path, the session calendar and the handover steps (sync `data/`, `weights/` and `.env`, then check the manifest hashes), all in `docs/hardware.md` |
+| `HW-06` | VLM accounts, API keys, a monthly spending cap and a call budget for each KEYS task; keys only in `.env` on the server | Human | - | - | 1 | A test call succeeds from the server for each candidate provider | Current prices, the cap and the per-task budgets in `docs/vlm-costs.md` |
+| `HW-07` | Install Stray Scanner; record and transfer a 30-second test clip, plus a short clip of a hand and a tool hovering and touching at 1, 3 and 5 cm over any laptop (an early look at report risk R-09) | Human | PHONE | - | 1 | The clip folder has `rgb.mp4`, `depth/`, `odometry.csv` and `camera_matrix.csv` | Transfer method that worked; whether hovering and touching look different in the depth files |
 | `HW-08` | Phone mount over the mat (overhead arm or gooseneck) | Human | PHONE | - | 1 | Both hands are free; the whole laptop and at least four mat markers are in view | Camera height and what is in view |
 
 ### CORE: Guidance logic (Swift, builds on Linux)
@@ -275,10 +299,10 @@ Paths: `core/`. Human owner: H-SYS. Lane total: 63 h.
 | `CORE-01` | Graph model with Codable structs; fact kinds and action types as enums (report Tables 5.3, 5.4) | Agent | - | BOOT-03 | 4 | Fixture graphs round-trip through JSON unchanged | - |
 | `CORE-02` | Validator (report Algorithm 1), code-added structure (reversal steps, reassembly phase, safety rules, pending fixes), and the `anchor-validate` command | Agent | - | CORE-01 | 9 | The valid fixture passes; one broken fixture per error kind fails with that error | Any rule in the report that proved ambiguous |
 | `CORE-03` | Gate (report Algorithm 2, Section 5.5) | Agent | - | BOOT-03 | 6 | Synthetic score traces behave as specified: flicker, occlusion, slow change, skipped frames | - |
-| `CORE-04` | Sequencer, state and labels (report Section 5.6) | Agent | - | CORE-01, CORE-03 | 10 | One scripted scenario per label passes; only the sequencer writes the state | - |
-| `CORE-05` | Recovery planner, path length at most 6 (report Section 5.7) | Agent | - | CORE-04 | 6 | Each kind of mistake in report Table 5.8 yields the expected path | - |
+| `CORE-04` | Sequencer, state and labels, including dismissal of a W6 (FR-11) (report Section 5.6) | Agent | - | CORE-01, CORE-03 | 10 | One scripted scenario per label passes; only the sequencer writes the state | - |
+| `CORE-05` | Recovery planner, path length at most 6 (report Section 5.7) | Agent | - | CORE-04 | 6 | Each kind of mistake in report Table 5.8 yields the fix that table names: a searched path for a transposition caught as it starts, a damage check, a pending entry, a typed fix from the mocked VLM, or the right tool | - |
 | `CORE-06` | Hazard rules, trigger policy and widget commands (C10) | Agent | - | CORE-04 | 6 | Table-driven tests cover the three thresholds, the priority order and the four-widget limit | - |
-| `CORE-07` | Timers, VLM request and answer types, cooldown and rate limiter (logic only) | Agent | - | CORE-04 | 4 | Simulated-clock tests: stall 45 s, heartbeat 40 s, at most three calls per minute | - |
+| `CORE-07` | Timers, VLM request and answer types, cooldown, rate limiter and urgency order (report 5.8.5) (logic only) | Agent | - | CORE-04 | 4 | Simulated-clock tests: stall 45 s, heartbeat 40 s, at most three calls per minute, waiting calls leave in urgency order | - |
 | `CORE-08` | Session log writer (C6) | Agent | - | CORE-01 | 2 | Log lines validate against the schema | - |
 | `CORE-09` | `anchor-replay` command: graph plus observations (and taps) in, log and widget timeline out | Agent | - | CORE-05, CORE-06, CORE-07, CORE-08 | 5 | Identical output on repeated runs over fixture streams | - |
 | `CORE-10` | Scenario suite, including the demo's step-3 case (screws removed before the cable) | Agent | - | CORE-09 | 6 | All scenarios run in CI | Scenarios that exposed a gap in the report's rules |
@@ -286,24 +310,25 @@ Paths: `core/`. Human owner: H-SYS. Lane total: 63 h.
 
 ### ML: Models and datasets (Python)
 
-Paths: `ml/`. Human owner: H-ML. Lane total: 83 h.
+Paths: `ml/`. Human owner: H-ML. Lane total: 88 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ML-01` | Dataset tooling: converters, manifests with hashes, split-by-source enforcement, class sheet (C9) | Agent | - | BOOT-03 | 5 | Existing screw and component sets load through the tooling; a frame-level split is rejected | Dataset cards with source and licence |
+| `ML-01` | Dataset tooling: converters, manifests with hashes, split-by-source enforcement, class sheet (C9) | Agent | DATA | BOOT-03 | 5 | Existing screw and component sets load through the tooling; a frame-level split is rejected | Dataset cards with source and licence |
 | `ML-02` | Evaluation harness: AP50, bootstrap intervals, per class and per source, paired tests | Agent | GPU | ML-01 | 5 | Reproduces the phase-2 screenshots: YOLO26n screws 0.734 and the component table | Any number that does not reproduce, and why |
-| `ML-03` | Relabel the 176 component test images; add SSD and battery-connector classes; one definition per class | Pair | - | ML-01 | 4 | Every visible part is boxed; class sheet updated | AP before and after, standard and federated |
-| `ML-04` | Screw crop classifier v0 (head, hole, covered) from the Lenovo screw boxes | Agent | GPU | ML-01 | 5 | Macro-F1 reported on a held-out source | Confusion matrix; a sheet of failure crops |
+| `ML-03` | Relabel the 176 component test images; add SSD and battery-connector classes; one definition per class | Pair | DATA | ML-01 | 4 | Every visible part is boxed; class sheet updated | AP before and after, standard and federated |
+| `ML-04` | Screw crop classifier v0 (head, hole, covered): head and hole from the Lenovo screw boxes, covered from hand and tool cut-outs pasted over clean crops | Agent | GPU | ML-01 | 5 | Macro-F1 reported on a held-out source | Confusion matrix; a sheet of failure crops |
 | `ML-05` | Laptop screw detector: fine-tune YOLO26n from the WEEE checkpoint | Agent | GPU | ML-02 | 4 | AP50 with interval on held-out laptop screws | Recall on recessed and dark-on-dark screws |
 | `ML-06` | Enrolment tool: one click per clip, video-segmenter propagation, boxes and masks, review export | Agent | GPU | ML-01 | 8 | A 60-second clip is labelled with at most five minutes of human time | Minutes of human time per clip |
 | `ML-07` | Enrol laptop 1's components and fine-tune YOLO26n | Pair | GPU LAPTOPS | ML-06, DATA-03 | 4 | AP50 at least 0.85 on a held-out recording day | AP per class |
-| `ML-08` | State readers: change from the stored reference, then a classifier per kind | Agent | GPU | ML-07 | 10 | Macro-F1 at least 0.90 on a held-out recording day | Which states still need the VLM |
-| `ML-09` | Tool model: YOLO26n-seg, tip from the mask, copy-paste and synthetic augmentation | Agent | GPU KIT | ML-06, DATA-04, AS-04 | 12 | AP50 at least 0.90 per class; median tip error at most 5 mm; plastic and metal confused in at most 5% of confident detections | Tip error distribution; hover-against-touch separation |
-| `ML-10` | Enrol laptops 2 and 3; leave-one-laptop-out study with augmentation | Pair | GPU LAPTOPS | ML-07, DATA-06 | 8 | A curve of unseen-laptop AP50 against the number of training laptops | The result, whichever way it goes |
-| `ML-11` | Compare large localisation models on the relabelled test set | Agent | GPU KEYS | ML-03, HW-06 | 8 | A table of model by AP50, latency and cost | Decision on keeping the unseen-laptop path (FR-03) |
-| `ML-12` | Export every model to ONNX and Core ML on x86 Linux; model cards (C7) | Agent | GPU | ML-04, ML-05 | 4 | ONNX and PyTorch disagree on at most 1% of 200 inputs | Input size, classes and decode steps per model |
-| `ML-13` | Calibration: temperature scaling; propose `c_high` and `c_low` | Agent | - | ML-04, ML-08 | 4 | Reliability diagrams committed | Proposed values in `docs/measurements.md` |
+| `ML-08` | State readers: change from the stored reference, then a classifier per kind | Agent | GPU | ML-07, ML-12 | 10 | Macro-F1 at least 0.90 on a held-out recording day; the state readers and the `ML-07` detector exported with the `ML-12` command, each with a model card | Which states still need the VLM |
+| `ML-09` | Tool model: YOLO26n-seg, tip from the mask, copy-paste and synthetic augmentation | Agent | GPU KIT | ML-06, DATA-04, AS-04, ML-12 | 12 | AP50 at least 0.90 per class; median tip error at most 5 mm; plastic and metal confused in at most 5% of confident detections; exported with the `ML-12` command and a model card | Tip error distribution; hover-against-touch separation |
+| `ML-10` | Enrol laptops 2 and 3; leave-one-laptop-out study with augmentation; a test on the unseen laptop (D13) once it arrives | Pair | GPU LAPTOPS | ML-07, DATA-06, ML-12 | 8 | A curve of unseen-laptop AP50 against the number of training laptops; the models for laptops 2 and 3 exported with model cards | The result, whichever way it goes; it feeds D12 |
+| `ML-11` | Compare large localisation models on the relabelled test set | Agent | GPU KEYS | ML-03, HW-06 | 8 | A table of model by AP50, latency and cost. Its gate: every task-relevant part is localised in at least 80% of registration attempts on a laptop not in training | Whether perception can work without enrolment; it feeds D12 |
+| `ML-12` | Export command (`make export`): any model to ONNX and Core ML on x86 Linux, with a model card (C7). Run it on the screw models, and on same-architecture stand-ins for the tool model and the state readers so that G0 can be timed | Agent | GPU | ML-04, ML-05 | 4 | ONNX and PyTorch disagree on at most 1% of 200 inputs | Input size, classes and decode steps per model |
+| `ML-13` | Calibration: temperature scaling; propose `c_high` and `c_low` | Agent | DATA | ML-04, ML-08 | 4 | Reliability diagrams committed | Proposed values in `docs/measurements.md` |
 | `ML-14` | MobileSAM on components | Agent | GPU | ML-07 | 2 | Mask IoU on 100 reviewed component masks | - |
+| `ML-15` | Screw crop classifier v1 on the study laptops: crops cut automatically through registration from the screws-in and screws-out clips, covered class from real hand clips (added 2026-11-12) | Agent | GPU | ML-04, ML-12, REF-03, DATA-02 | 5 | Macro-F1 at least 0.95 on unoccluded slots of a held-out recording day; false hole readings counted per clip; exported with a model card | Every false hole reading: one would unlock prying early |
 
 ### REF: Reference pipeline on recordings (Python)
 
@@ -311,12 +336,12 @@ Paths: `pyref/`. Human owner: H-ML. Lane total: 40 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `REF-01` | Recording loader, Stray Scanner converter to C4, sync check, viewer | Agent | - | BOOT-03, HW-07 | 5 | The test clip loads; RGB, depth and pose line up within one frame | RGB resolution and frame rate of the clips |
-| `REF-02` | Mat pose: ArUco detection and pose solve in the odometry world frame | Agent | MAT | REF-01, HW-03 | 8 | Median reprojection error of mat corners at most 2 px on a moving clip | Jitter when markers are partly covered |
-| `REF-03` | Face plane, rigid 2D registration with RANSAC, slot projection, drift metric | Agent | LAPTOPS | REF-02, ML-05, DATA-02 | 10 | Sticker reprojection error: median at most 3 mm, 95th percentile at most 5 mm | `min_inliers` and `max_error` values that worked |
-| `REF-04` | Perception runner that writes observations (C2): screw slots, cover and component states, SSIM skip | Agent | - | REF-03, ML-04, ML-08 | 8 | Observations validate against C2 on three clips | Per-stage time per frame on the PC |
-| `REF-05` | End-to-end replay: recording to observations to `anchor-replay` to metrics | Agent | - | REF-04, CORE-09, EV-01, GR-03 | 4 | Both clean-run clips of laptop 1 yield a step-recognition report (gate GA) | The first end-to-end numbers; which VLM answers were scripted |
-| `REF-06` | Add tools, tips and contacts to the runner (LiDAR height against the face plane) | Agent | - | REF-04, ML-09 | 5 | On the staged hover and touch clips, touches are found and hovering hands raise no contact | `h_touch` and `min_time` values that separated hover from touch |
+| `REF-01` | Recording loader, Stray Scanner converter to C4, sync check, viewer | Agent | DATA | BOOT-03, HW-07 | 5 | The test clip loads; RGB, depth and pose line up within one frame | RGB resolution and frame rate of the clips |
+| `REF-02` | Mat pose: ArUco detection and pose solve in the odometry world frame | Agent | DATA | REF-01, HW-03 | 8 | Median reprojection error of mat corners at most 2 px on a moving clip | Jitter when markers are partly covered |
+| `REF-03` | Face plane, rigid 2D registration with RANSAC, slot projection, drift metric, on the cover face (the interior face comes in `REF-04`) | Agent | DATA | REF-02, ML-05, DATA-02 | 10 | Sticker reprojection error: median at most 3 mm, 95th percentile at most 5 mm | `min_inliers` and `max_error` values that worked |
+| `REF-04` | Perception runner that writes observations (C2): screw slots, cover and component states, interior-face registration from the `ML-07` landmarks, an occluder mask for the hidden share, SSIM skip | Agent | DATA | REF-03, ML-08, ML-15 | 8 | Observations validate against C2 on three clips | Per-stage time per frame on the PC; ADR naming the offline occluder source (for example height above the face plane from depth, or an open hand model) |
+| `REF-05` | End-to-end replay: recording to observations to `anchor-replay` to metrics | Agent | DATA | REF-04, CORE-09, EV-01, GR-03 | 4 | Both clean-run clips of laptop 1 yield a step-recognition report (gate GA) | The first end-to-end numbers; which VLM answers were scripted |
+| `REF-06` | Add tools, tips and contacts to the runner (LiDAR height against the face plane) | Agent | DATA | REF-04, ML-09 | 5 | On the staged hover and touch clips, touches are found and hovering hands raise no contact | `h_touch` and `min_time` values that separated hover from touch |
 
 ### SRV: Server
 
@@ -336,13 +361,13 @@ Paths: `server/graph_builder/`, `graphs/`, `resources/`. Human owner: H-SYS. Lan
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `GR-01` | Seed the resource store: manual pages as text and images (a development model first, then the three laptops) | Pair | - | SRV-03 | 4 | Resources stored with type, source and model number | Source and terms of each resource |
+| `GR-01` | Seed the resource store: manual pages as text and images (a development model first, then the three laptops). An agent finds the manuals from the model numbers the team supplies (D1) | Pair | DATA | SRV-03 | 4 | Resources stored with type, source and model number | Source and terms of each resource |
 | `GR-02` | Validator bridge: the server calls `anchor-validate`, or a Python twin runs against the same fixtures | Agent | - | CORE-02 | 5 | The server validates a graph; ADR records the choice | ADR |
 | `GR-03` | First reference graph, written by hand: laptop 1, storage task | Pair | LAPTOPS | CORE-02, HW-01 | 4 | Passes `anchor-validate`; checked against the manual and the physical laptop | Fields that were hard to fill from the manual |
-| `GR-04` | Extraction prompts, schema-constrained output, retry loop on validator errors, structured motion field, tool names from the asset manifest | Agent | KEYS | GR-01, GR-02, HW-06 | 10 | A graph for the development model passes validation within three retries | Tokens and cost per build; common extraction errors |
+| `GR-04` | Extraction prompts, schema-constrained output, retry loop on validator errors, structured motion field, tool names from the asset manifest; every call goes through the `VLM-01` adapter | Agent | KEYS | GR-01, GR-02, VLM-01, HW-06 | 10 | A graph for the development model passes validation within three retries | Tokens and cost per build; common extraction errors |
 | `GR-05` | The other eight reference graphs: built by GR-04, then reviewed by hand | Pair | LAPTOPS KEYS | GR-04, GR-03 | 13 | Each graph checked against the manual and the physical laptop | Corrections made by hand, by kind |
-| `GR-06` | Builder evaluation against the nine references | Agent | KEYS | GR-05 | 5 | Step recall, exact screw counts, repeatability over three runs | The number report risk R-05 asks for; whether the study should use reviewed graphs |
-| `GR-07` | Automated resource search (FR-21) | Agent | KEYS | GR-04 | 6 | Finds the service manual for each study laptop from the model number alone | - |
+| `GR-06` | Builder evaluation against the nine references | Agent | KEYS | GR-05 | 5 | Step recall, exact screw counts, repeatability over three runs | The number report risk R-05 asks for. The study uses built graphs as they are (D9); say so plainly if this number argues against that |
+| `GR-07` | Automated resource search (FR-21, a Must), and the FR-03 path: when nothing is found for the exact model, widen the search to related models; the builder judges whether what was found is enough, never adapts another device's procedure, and marks the graph lower confidence or refuses (report 5.3.5) | Agent | KEYS | GR-04 | 6 | Finds the service manual for each study laptop from the model number alone; for a model with no manual, returns a lower-confidence graph or a refusal with its reason | - |
 
 ### VLM: VLM adapter
 
@@ -350,8 +375,8 @@ Paths: `server/vlm/`. Human owner: H-SYS. Lane total: 17 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `VLM-01` | VLM adapter on the server: one request type per reason in report Table 5.9, a mock, two providers | Agent | KEYS | SRV-01, HW-06 | 6 | The same test suite passes against the mock and both providers | - |
-| `VLM-02` | Compare candidates on 150 bench crops: accuracy, latency, cost per call | Pair | KEYS | VLM-01, DATA-05 | 6 | A fast slot and a strong slot chosen | Cost per session at three calls a minute |
+| `VLM-01` | VLM adapter on the server: one request type per reason in report Table 5.9, plus graph building and task matching (FR-01), a mock, two providers | Agent | KEYS | SRV-01, HW-06 | 6 | The same test suite passes against the mock and both providers | - |
+| `VLM-02` | Compare candidates on 150 bench crops: accuracy, latency, cost per call | Pair | KEYS DATA | VLM-01, DATA-05 | 6 | A fast slot and a strong slot chosen | Cost per session at three calls a minute |
 | `VLM-03` | Versioned prompt files, replay tests, confidence calibration | Agent | KEYS | VLM-02 | 5 | Recorded request and answer pairs replay in CI without network | - |
 
 ### AS: Assets and mat
@@ -374,11 +399,11 @@ Paths: `docs/recording/`, `data-manifests/` (raw data stays out of git). Human o
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `DATA-01` | Recording protocol: shot lists for sets A to E, consent form, clip naming | Pair | - | BOOT-03 | 3 | `docs/recording/protocol.md` approved by all three humans | - |
 | `DATA-02` | Laptop 1 perception recordings: screws in, out and half out; each component state; drift clips with stickers; two clean runs of the storage task | Human | LAPTOPS MAT PHONE | DATA-01, HW-01, HW-03, HW-07, HW-08 | 6 | Clips load through REF-01; the manifest lists each clip with its scripted state | Lighting, camera height, anything that went wrong |
-| `DATA-03` | Label and audit laptop 1 clips with the enrolment tool | Human | - | DATA-02, ML-06 | 6 | Every validation and test frame reviewed; 10% of training frames sampled | Error rate found in the sample |
-| `DATA-04` | Tool recordings (25 to 30 clips), hover and touch clips at 1, 3 and 5 cm, labelling and audit | Human | KIT MAT PHONE | DATA-01, HW-02, HW-03, HW-08, ML-06 | 10 | Whole clips from another day and operator held out as the test set | - |
-| `DATA-05` | 150 labelled crops for the VLM comparison | Human | - | DATA-02 | 3 | Each crop has a value label and a second annotator's check on a sample | Annotator agreement |
-| `DATA-06` | Laptops 2 and 3: perception recordings, labelling and audit | Human | LAPTOPS MAT PHONE | DATA-02 | 14 | As DATA-02 and DATA-03, per laptop | - |
-| `DATA-07` | Sets A to C: clean runs, staged mistakes, hazard moments, with event times | Human | LAPTOPS MAT PHONE | DATA-01, DATA-02, GR-05 | 28 | Event times labelled; a second annotator re-labels a sample | Annotator agreement; takes that were discarded and why |
+| `DATA-03` | Label and audit laptop 1 clips with the enrolment tool | Human | DATA | DATA-02, ML-06 | 6 | Every validation and test frame reviewed; 10% of training frames sampled | Error rate found in the sample |
+| `DATA-04` | Tool recordings (25 to 30 clips), hover and touch clips at 1, 3 and 5 cm, labelling and audit, tips marked by hand on the test frames | Human | KIT MAT PHONE | DATA-01, HW-02, HW-03, HW-08, ML-06 | 10 | Whole clips from another day and operator held out as the test set | - |
+| `DATA-05` | 150 labelled crops for the VLM comparison | Human | DATA | DATA-02 | 3 | Each crop has a value label and a second annotator's check on a sample | Annotator agreement |
+| `DATA-06` | Laptops 2 and 3: perception recordings, labelling and audit | Human | LAPTOPS MAT PHONE | DATA-02, ML-06 | 14 | As DATA-02 and DATA-03, per laptop | - |
+| `DATA-07` | Sets A to C: clean runs, staged mistakes, hazard moments, with event times labelled from the video after the take (or with the app recorder's event button, if `IOS-03` exists by then) | Human | LAPTOPS MAT PHONE | DATA-01, DATA-02, GR-05 | 28 | Event times labelled; a second annotator re-labels a sample | Annotator agreement; takes that were discarded and why |
 
 ### EV: Evaluation
 
@@ -387,10 +412,10 @@ Paths: `eval/`, `results/`. Human owner: H-SYS. Lane total: 28 h.
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `EV-01` | Metrics from logs for NFR-01, 02, 03, 09 and 10; report generator stamped with the configuration hash | Agent | - | BOOT-03 | 6 | Metrics computed on fixture logs match hand-calculated values | - |
-| `EV-02` | Tuning tools: split by take, threshold sweeps on the tuning split, configuration freeze | Agent | - | EV-01, REF-05 | 6 | A frozen configuration file with its hash | Chosen values in `docs/measurements.md` |
-| `EV-03` | Regression suite in CI on six observation files | Agent | - | REF-05 | 3 | CI fails if step recognition or median latency gets worse | - |
-| `EV-04` | Ablations and the hazard-threshold experiment with a paired test | Agent | - | EV-02 | 5 | Results tables generated from one command | - |
-| `EV-05` | Bench evaluation on the test split, run once: replay metrics, plus latency from the app's own logs | Pair | - | EV-02, DATA-07, INT-01 | 8 | `results/bench_v1/` holds every NFR number with the configuration hash | Every NFR result, pass or fail |
+| `EV-02` | Tuning tools: split by take into tune and test, threshold sweeps on the tuning split, a freeze command that also lists the ablation settings | Agent | DATA | EV-01, REF-05 | 6 | The tools run end to end on laptop 1's clips and write a frozen configuration file with its hash. The real freeze is `INT-02` | Values tried on laptop 1, marked provisional, in `docs/measurements.md` |
+| `EV-03` | Regression suite in CI on committed observation files: laptop 1's two clean runs first, six from set A once `DATA-07` lands | Agent | - | REF-05 | 3 | CI fails if step recognition or median latency gets worse | - |
+| `EV-04` | Ablations and the hazard-threshold experiment with a paired test | Agent | DATA | EV-02, DATA-07, INT-02 | 5 | Results tables generated from one command, on sets B and C, with the settings listed in the freeze | - |
+| `EV-05` | Bench evaluation on the test split, run once: replay metrics, plus latency from the app's own logs | Pair | DATA | EV-02, DATA-07, INT-02 | 8 | `results/bench_v1/` holds every NFR number with the configuration hash; NFR-04, 06 and 07 taken from the `INT-01` and `INT-02` notes | Every NFR result, pass or fail |
 
 ### IOS: iOS app
 
@@ -398,19 +423,19 @@ Paths: `ios/`. Human owner: H-APP. Lane total: 123 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `IOS-01` | Project generated from `project.yml`, AnchorCore linked, macOS CI build, signing, install on the iPhone | Pair | MAC PHONE | HW-04, CORE-01 | 8 | The app launches on the iPhone 13 Pro from a CI or Mac build | Minutes per build and install |
+| `IOS-01` | Project generated from `project.yml`, AnchorCore linked, macOS CI build of an unsigned app, sideload install on the iPhone (D3) | Pair | MAC PHONE | HW-04, CORE-01 | 8 | The app launches on the iPhone 13 Pro Max from a CI build | Minutes per build and install |
 | `IOS-02` | ARKit session service: world tracking, scene depth, latest-frame-wins frame pump, thermal monitor, configuration loader | Agent | MAC PHONE | IOS-01 | 6 | Frames, pose and depth reach a test consumer at a logged rate | Frame resolution and rate on the device |
 | `IOS-03` | Recorder in the C4 format with an event button and a consent switch | Agent | MAC PHONE | IOS-02 | 8 | A recorded clip loads through REF-01 | - |
 | `IOS-04` | Debug overlay: slot crops and scores, gate runs, registration inliers, state | Agent | MAC PHONE | IOS-02 | 5 | Overlay toggles on the device and exports a screenshot | - |
 | `IOS-05` | Core ML runtime, batched slot crops, benchmark screen, parity against the Python outputs | Pair | MAC PHONE | IOS-02, ML-12 | 10 | Gate G0 numbers recorded; Core ML and Python disagree on at most 1% of 200 inputs | Time per model and per processed frame |
-| `IOS-06` | Port mat pose and registration from `pyref`, with parity tests | Agent | MAC PHONE | IOS-02, REF-03 | 12 | Slot positions within 2 px of `pyref` on a recorded clip | - |
-| `IOS-07` | Hand mask test: ARKit person segmentation against Apple Vision hand pose at 30 to 50 cm | Pair | MAC PHONE | IOS-02 | 4 | ADR names the chosen source, or sends the work to a trained hand class | ADR with example frames |
+| `IOS-06` | Port mat pose and registration from `pyref`, with parity tests; the maths (pose solve, RANSAC, projection) sits in a Swift package that builds on Linux | Agent | MAC PHONE | IOS-02, REF-03 | 12 | Slot positions within 2 px of `pyref` on a recorded clip | ADR: how ArUco markers are detected on iOS (an OpenCV framework or another route) |
+| `IOS-07` | Hand mask test: ARKit person segmentation against Apple Vision hand pose at 30 to 50 cm | Pair | MAC PHONE | IOS-02 | 4 | ADR names the chosen source, or sends the work to a trained hand class | ADR with example frames. If both sources fail, a trained hand class is a new task with no hours in this plan: propose it |
 | `IOS-08` | Widget renderer: device-face anchor, W1 rings, component outline, hands hiding widgets | Agent | MAC PHONE | IOS-06 | 10 | Rings sit on laptop 1's screws while the camera moves | Ring error against the 5 mm target |
 | `IOS-09` | W2 and W3: curved arrow, cut-out, end outline, pry wedge, lift arrow, tool models | Agent | MAC PHONE | IOS-08, AS-02, AS-03 | 12 | Each motion kind renders from a widget command fixture | - |
 | `IOS-10` | Screens S1 to S7, W4 and W6 cards, W5 banner, Mark done | Agent | MAC | IOS-01, CORE-06 | 12 | The three step-view states render from widget command fixtures | - |
 | `IOS-11` | Tap-driven slice on laptop 1's storage task | Pair | MAC PHONE LAPTOPS | IOS-08, IOS-10, CORE-10, GR-03 | 6 | Gate G1 | What was awkward when a person followed it |
 | `IOS-12` | Server client: graph fetch and polling, outlines, configuration override, VLM calls | Agent | MAC | IOS-01, SRV-04, VLM-01 | 6 | Works against the deployed server and against the mock | - |
-| `IOS-13` | Camera slice: on-device observations into the gate | Pair | MAC PHONE LAPTOPS | IOS-05, IOS-11, IOS-12, ML-08 | 10 | Gate G2 | Where device observations differ from `pyref` |
+| `IOS-13` | Camera slice: on-device observations into the gate | Pair | MAC PHONE LAPTOPS | IOS-05, IOS-11, IOS-12, ML-08, REF-05 | 10 | Gate G2 | Where device observations differ from `pyref` |
 | `IOS-14` | Contacts on the device: tool tip, LiDAR height, hand mask, early warning | Pair | MAC PHONE KIT | IOS-13, REF-06, IOS-07 | 8 | W6 appears on staged wrong actions; at most one false warning per bench session | `h_touch` and `min_time` values that worked |
 | `IOS-15` | Model label reading on S2 | Agent | MAC PHONE | IOS-10 | 3 | Reads the label of each study laptop; the user can correct it | - |
 | `IOS-16` | Full-length heat and performance session | Human | MAC PHONE | IOS-13 | 3 | 25 minutes without tracking loss; tier B rate logged over time | Thermal state over time |
@@ -421,8 +446,8 @@ Paths: no code of its own; fixes go to the owning lane. Human owner: H-APP. Lane
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `INT-01` | Full system on three laptops by three tasks | Pair | MAC PHONE LAPTOPS KIT | IOS-14, IOS-09, CORE-10, GR-05, ML-10 | 12 | Gate G3 | A defect list, ranked |
-| `INT-02` | Bench tuning and calibration session; freeze the configuration | Pair | MAC PHONE LAPTOPS | INT-01, EV-02, ML-13, VLM-03 | 10 | Frozen configuration hash recorded | Final values for report Table 6.3 |
+| `INT-01` | Full system on three laptops by three tasks | Pair | MAC PHONE LAPTOPS KIT | IOS-14, IOS-09, CORE-10, GR-05, ML-10 | 12 | Gate G3 | A defect list, ranked; ring drift against NFR-04 |
+| `INT-02` | Bench tuning and calibration session; freeze the configuration | Pair | MAC PHONE LAPTOPS | INT-01, EV-02, ML-13, VLM-03 | 10 | Frozen configuration hash recorded | Final values for report Table 6.3; the NFR-06 swap (detector file and VLM provider, with the diff) and the NFR-07 check (no frames on disk without consent) |
 
 ### ST: User study
 
@@ -449,22 +474,22 @@ Paths: `docs/deliverables/`. Human owner: all three. Lane total: 45 h.
 
 A wave is the set of tasks whose dependencies all sit in earlier waves. Tasks from different lanes never touch the same folder, and tasks of one lane in the same wave work in separate modules, so a whole wave can be in progress at once. Hardware tags, not waves, are what make a task wait.
 
-| Wave | Tasks that can run at the same time | Agent-led | Need hardware |
+| Wave | Tasks that can run at the same time | Agent-led | Need hardware, data or keys |
 | --- | --- | --- | --- |
-| 1 | `BOOT-01`, `HW-01`, `HW-04`, `HW-05`, `HW-06`, `HW-07`, `HW-08` | 0 of 7 | `HW-05`, `HW-07`, `HW-08` |
+| 1 | `BOOT-01`, `HW-01`, `HW-04`, `HW-05`, `HW-06`, `HW-07`, `HW-08` | 0 of 7 | `HW-04`, `HW-05`, `HW-07`, `HW-08` |
 | 2 | `BOOT-02`, `BOOT-03`, `BOOT-04`, `HW-02`, `AS-01` | 3 of 5 | - |
-| 3 | `HW-03`, `CORE-01`, `CORE-03`, `CORE-11`, `ML-01`, `REF-01`, `SRV-01`, `AS-02`, `AS-03`, `DATA-01`, `EV-01`, `DOC-01` | 9 of 12 | - |
-| 4 | `CORE-02`, `CORE-04`, `CORE-08`, `ML-02`, `ML-03`, `ML-04`, `ML-06`, `REF-02`, `SRV-02`, `SRV-03`, `VLM-01`, `AS-04`, `AS-05`, `DATA-02`, `IOS-01`, `ST-01` | 11 of 16 | `ML-02`, `ML-04`, `ML-06`, `REF-02`, `SRV-02`, `VLM-01`, `AS-05`, `DATA-02`, `IOS-01` |
-| 5 | `CORE-05`, `CORE-06`, `CORE-07`, `ML-05`, `ML-11`, `SRV-04`, `GR-01`, `GR-02`, `GR-03`, `DATA-03`, `DATA-04`, `DATA-05`, `DATA-06`, `IOS-02` | 7 of 14 | `ML-05`, `ML-11`, `SRV-04`, `GR-03`, `DATA-04`, `DATA-06`, `IOS-02` |
-| 6 | `CORE-09`, `ML-07`, `ML-09`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` | 10 of 13 | `ML-07`, `ML-09`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` |
-| 7 | `CORE-10`, `ML-08`, `ML-10`, `ML-14`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` | 7 of 10 | `ML-08`, `ML-10`, `ML-14`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` |
-| 8 | `ML-13`, `REF-04`, `GR-06`, `DATA-07`, `IOS-08` | 4 of 5 | `GR-06`, `DATA-07`, `IOS-08` |
-| 9 | `REF-05`, `REF-06`, `IOS-09`, `IOS-11` | 3 of 4 | `IOS-09`, `IOS-11` |
-| 10 | `EV-02`, `EV-03`, `IOS-13` | 2 of 3 | `IOS-13` |
-| 11 | `EV-04`, `IOS-14`, `IOS-16` | 1 of 3 | `IOS-14`, `IOS-16` |
+| 3 | `HW-03`, `CORE-01`, `CORE-03`, `CORE-11`, `ML-01`, `REF-01`, `SRV-01`, `AS-02`, `AS-03`, `DATA-01`, `EV-01`, `DOC-01` | 9 of 12 | `HW-03`, `ML-01`, `REF-01` |
+| 4 | `CORE-02`, `CORE-04`, `CORE-08`, `ML-02`, `ML-03`, `ML-04`, `ML-06`, `REF-02`, `SRV-02`, `SRV-03`, `VLM-01`, `AS-04`, `AS-05`, `DATA-02`, `IOS-01`, `ST-01` | 11 of 16 | `ML-02`, `ML-03`, `ML-04`, `ML-06`, `REF-02`, `SRV-02`, `VLM-01`, `AS-05`, `DATA-02`, `IOS-01` |
+| 5 | `CORE-05`, `CORE-06`, `CORE-07`, `ML-05`, `ML-11`, `SRV-04`, `GR-01`, `GR-02`, `GR-03`, `DATA-03`, `DATA-04`, `DATA-05`, `DATA-06`, `IOS-02` | 7 of 14 | `ML-05`, `ML-11`, `SRV-04`, `GR-01`, `GR-03`, `DATA-03`, `DATA-04`, `DATA-05`, `DATA-06`, `IOS-02` |
+| 6 | `CORE-09`, `ML-07`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` | 9 of 12 | `ML-07`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` |
+| 7 | `CORE-10`, `ML-08`, `ML-09`, `ML-10`, `ML-14`, `ML-15`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` | 9 of 12 | `ML-08`, `ML-09`, `ML-10`, `ML-14`, `ML-15`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` |
+| 8 | `ML-13`, `REF-04`, `GR-06`, `DATA-07`, `IOS-08` | 4 of 5 | `ML-13`, `REF-04`, `GR-06`, `DATA-07`, `IOS-08` |
+| 9 | `REF-05`, `REF-06`, `IOS-09`, `IOS-11` | 3 of 4 | `REF-05`, `REF-06`, `IOS-09`, `IOS-11` |
+| 10 | `EV-02`, `EV-03`, `IOS-13` | 2 of 3 | `EV-02`, `IOS-13` |
+| 11 | `IOS-14`, `IOS-16` | 0 of 2 | `IOS-14`, `IOS-16` |
 | 12 | `INT-01` | 0 of 1 | `INT-01` |
-| 13 | `EV-05`, `INT-02`, `DOC-03` | 0 of 3 | `INT-02`, `DOC-03` |
-| 14 | `ST-02` | 0 of 1 | `ST-02` |
+| 13 | `INT-02`, `DOC-03` | 0 of 2 | `INT-02`, `DOC-03` |
+| 14 | `EV-04`, `EV-05`, `ST-02` | 1 of 3 | `EV-04`, `EV-05`, `ST-02` |
 | 15 | `ST-03` | 0 of 1 | `ST-03` |
 | 16 | `ST-04` | 0 of 1 | - |
 | 17 | `DOC-02` | 0 of 1 | - |
@@ -485,27 +510,31 @@ Every finished task leaves a note at `notes/<TASK-ID>.md` (template in `AGENTS.m
 
 | File | What goes in | Who reads it later |
 | --- | --- | --- |
-| `docs/decisions/ADR-nnn-title.md` | One decision each: context, options, choice, consequences | Anyone asking why |
+| `docs/decisions/ADR-<TASK-ID>-title.md` | One decision each: context, options, choice, consequences | Anyone asking why |
 | `docs/measurements.md` | One row per setting in report Table 6.3: provisional value, measured value, the run that produced it | Deliverable III and the final report |
 | `docs/report-deltas.md` | Every place the build departs from Deliverable II | Deliverable III |
 | `docs/risks.md` | New risks and surprises, with the task that found them | The team, at each gate |
 | `results/<run>/` | Metric files with the configuration hash and the data manifest hash | Evaluation chapters |
 
-`docs/report-deltas.md` starts with these entries: the 6-DoF mat pose in place of two homographies; movement widgets in 3D; the structured motion field in the graph schema; a 5 mm internal target under NFR-04's 2 cm; rings instead of masks on screws; the optional localisation service; VLM calls routed through the server; the Python reference pipeline as test oracle.
+`docs/report-deltas.md` starts with these entries: the 6-DoF mat pose in place of two homographies; movement widgets in 3D; the structured motion field in the graph schema; a 5 mm internal target under NFR-04's 2 cm; rings instead of masks on screws; the optional localisation service; VLM calls routed through the server; the Python reference pipeline as test oracle; tool masks, with the tip taken from the mask (the report uses boxes); hand masks from ARKit or Apple Vision (report Table 6.2 names the detector); component state read as change from a stored reference; no Mac in the build route (report 2.7 and 4.7.1 say development needs one). Recording each study laptop is added as a delta if D12 keeps it: report 3.5 says ANCHOR needs no recording per laptop.
+
+`docs/measurements.md`, `docs/report-deltas.md` and `docs/risks.md` are append-only and use the union merge rule, so parallel pull requests do not conflict.
 
 A number that is not produced by a committed script, with both hashes, does not go into any note, result or report.
 
 ## 12. Budget
 
-- Planned: 666 human hours across 100 tasks. With a 15% contingency (100 hours): 766.
-- By mode: 337 hours on agent-led tasks, 156 on pair tasks, 173 on human-only tasks.
-- Before FYP-II (Phases 0 and A): 316 hours, almost all of it without Apple hardware. During FYP-II (Phases B to E): 350 hours, about 7.3 hours per person per week for three people over sixteen weeks, before contingency.
-- GPU: about 30 to 40 hours of unattended training on the 4070 Super PC, one job at a time.
-- Money to plan for: the macOS route (D3), two tool kits, the mat print, spare bottom covers, the phone mount, VLM usage, and the Apple Developer Program if the CI route is used.
+- Planned: 673 human hours across 101 tasks. With a 15% contingency (101 hours): 774.
+- By mode: 344 hours on agent-led tasks, 156 on pair tasks, 173 on human-only tasks.
+- Before FYP-II (Phases 0 and A): 323 hours, almost all of it without Apple hardware. During FYP-II (Phases B to E): 350 hours, about 7.3 hours per person per week for three people over sixteen weeks, before contingency.
+- GPU: about 30 to 40 hours of unattended training on the active GPU PC, one job at a time.
+- Money to plan for: two tool kits, the mat print, spare bottom covers, the phone mount, VLM usage (about 30 US dollars a month is an estimate, not a measurement), and the Apple Developer Program only if sideloading fails (D3).
 
 These are planning estimates. After the first wave, compare actual hours with the estimates in the notes and rescale the rest.
 
-The implementation plan document estimated 685 hours by work package. This file re-cuts the same work into tasks and adds the Python reference pipeline, which the lack of a Mac makes necessary; the totals agree to within 4%.
+The implementation plan document estimated 685 hours by work package. This file re-cuts the same work into tasks and adds the Python reference pipeline, which the lack of a Mac makes necessary; the totals agree to within 2%.
+
+Revised 2026-11-12: `ML-15` added (5 h) and `BOOT-02` raised from 3 h to 5 h. The other hours are unchanged, although several tasks gained scope; rescale them after the first wave.
 
 ## 13. Changing this plan
 
