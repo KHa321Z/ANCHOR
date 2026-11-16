@@ -11,6 +11,8 @@ Nov 10, 2026 · @musa
 > - FR-03 was rewritten in the report: there is no closest-device fallback. FR-21 is a Must.
 > - The study uses built graphs as they are. Reviewed graphs are a testing aid only.
 > - Whether each study laptop is recorded to train its detector (enrolment) is open until component fine-tuning has been tested in depth. A fourth laptop, from another maker, is kept unseen.
+> - 16 Nov 2026 (`PLAN.md` D15 to D17). State reading uses no trained per-state classifiers. Where Sections 5 and 6 describe a crop classifier per screw slot and a classifier per state kind, read instead: change from a stored reference through one shared frozen crop embedder, LiDAR depth, tool-contact events, and a count of screws in a tray zone on the mat. The cover value `released` is not read by the camera.
+> - The models stay separate: screw detector, part detector, tool model and the one crop embedder, with MobileSAM on the server. Whether the tool model outputs masks or keypoints (Section 7) is open and is decided inside `ML-09`.
 
 ## 1. Summary
 
@@ -202,6 +204,7 @@ In ARKit's default 1920 × 1440 frame, a 4 to 5 mm screw head is about 20 px acr
 | --- | --- | --- |
 | WEEE screw set (653 training images, 3,225 screws) | Detector pre-training | Done |
 | Lenovo set: about 2,257 `Screw_Inserted` and 1,409 `Screw_Hole` boxes | Crops for head and hole; detector fine-tuning on laptop screws | Next |
+| Roboflow `presence_absence` set: `empty_hole` and `screw_present` classes, CC BY 4.0 (noted 16 Nov 2026) | Optional pre-training only | Terms not checked yet |
 | Bench frames of the three target laptops | Crops per slot in both states, under several lights | To record |
 | [Danish Technological Institute laptop screen-frame and screw set](https://zenodo.org/records/18483802): 342 images, CC BY-SA 4.0 | Extra laptop screws for the detector | New, not in the report |
 | RoboSAPIENS sets, and Zhang et al.'s screw and tool set if access is granted | As planned in Table 3.2 | Unchanged |
@@ -274,6 +277,7 @@ State kinds for S5 follow Table 5.3: component seated, raised or out; connector 
 | --- | --- | --- | --- |
 | Your Lenovo G50-80 set and Dell Latitude 3520 photos | Already used in both benchmark rounds | Yours | Add to the dataset table in Deliverable III |
 | [Laptop Disassembly (Roboflow, robothon1)](https://universe.roboflow.com/robothon1/laptop-disassembly) | Fan and RAM boxes; size not stated on the page | CC BY 4.0 | Extra fan and RAM examples |
+| Fraunhofer connector dataset, Zenodo record 18267392 (noted 16 Nov 2026) | 263 images with YOLO boxes for connectors; location only, not state | Check on the record | Optional pre-training for connector location |
 | Other Roboflow sets on laptop and PC parts | Unverified | Varies | Triage 30 minutes each: classes, licence, laptop or desktop, duplicates |
 | iFixit guide photos | Photos of many laptop models | CC BY-NC-SA 3.0 | Do not train on them (see below) |
 
@@ -332,6 +336,7 @@ If the tip error misses its target, move to YOLO26n-pose with two keypoints (tip
 | --- | --- | --- |
 | [MECCANO](https://iplab.dmi.unict.it/MECCANO/) | Screwdriver and wrench among 20 classes; 64,349 active-object boxes and 89,628 hand boxes | Toy-motorbike assembly from a head-mounted camera; no licence stated on the page |
 | [ENIGMA-51](https://fpv-iplab.github.io/ENIGMA-51/) | 25 object classes including an electric screwdriver and pliers; 275,135 object boxes and 56,473 hand boxes; 3D models of the objects | Electrical-board repair on HoloLens 2; no licence stated on the page |
+| BusyHands (noted 16 Nov 2026) | Hand and tool segmentation in assembly, 7,905 images | No spudgers or plastic pry tools; check its terms |
 | Roboflow Universe tool and screwdriver sets | Many small community sets | Unverified quality; triage before use |
 
 Use these only if the model trained on your own clips underperforms. Check each dataset's terms first.
