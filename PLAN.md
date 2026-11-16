@@ -1,13 +1,13 @@
 # ANCHOR build plan
 
-This file says what to build, in what order, who can do it, and what each piece of work must leave behind. It holds 101 tasks in 15 lanes, sized at 673 human hours.
+This file says what to build, in what order, who can do it, and what each piece of work must leave behind. It holds 102 tasks in 15 lanes, sized at 673 human hours.
 
 - Design authority: the Deliverable II report in `docs/report/`. If this plan and the report disagree, stop and raise it.
 - Working rules for anyone (human or AI agent) who touches the repo: `AGENTS.md`.
 - Background and reasoning: `docs/implementation-plan.md`. Where it differs from this file, this file wins.
 - This file changes rarely. Live status is in GitHub Issues (one per task) and in `notes/`. Nobody edits this file to mark progress.
 
-Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 to D14; review fixes; `ML-15` added).
+Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 to D14; review fixes; `ML-15` added). Revised: 2026-11-16 (D15 to D17: state reading, model split, tool model output; `REF-07` added; D18 proposed).
 
 ## 1. Where we are
 
@@ -22,7 +22,7 @@ Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 
 
 ### Architecture in brief
 
-- **App, on the iPhone.** Tier A runs every frame: ARKit pose and depth, mat pose, change check, hand mask, drawing. Tier B runs on changed frames: slot-crop classifiers, the tool model, contacts, the gate. Then the sequencer, the trigger policy and the widgets.
+- **App, on the iPhone.** Tier A runs every frame: ARKit pose and depth, mat pose, change check, hand mask, drawing. Tier B runs on changed frames: crop embeddings compared with stored references, the tool model, LiDAR depth checks, contacts, the gate. Then the sequencer, the trigger policy and the widgets.
 - **Server, on the GPU PC.** Graph builder and stores, MobileSAM outlines, the VLM proxy, optional part localisation. This is tier C: events only.
 - **Hosted VLM.** One narrow question per exception.
 - An expected step never leaves the device.
@@ -31,7 +31,7 @@ Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 
 
 ### 2.1 Decisions
 
-| # | Decision | Status on 2026-11-12 | What it blocks |
+| # | Decision | Status on 2026-11-16 | What it blocks |
 | --- | --- | --- | --- |
 | D1 | The three study laptops | Open. The team will send the model numbers; an agent then finds the manuals | Every task tagged LAPTOPS; `HW-02` |
 | D2 | LiDAR device | iPhone 13 Pro Max | Nothing; it meets NFR-08 |
@@ -47,6 +47,10 @@ Last planned: 2026-11-11. Revised: 2026-11-12 (decisions D2, D3, D7, D9 and D11 
 | D12 | Recording each study laptop to train its detector (enrolment) | Open. Decide once component fine-tuning has been tested in depth (`ML-07`, `ML-10`, `ML-11`). Until then enrolment is the working path | Report deltas |
 | D13 | Unseen laptop | A fourth laptop, from a maker not among the study laptops, is brought in when the unseen test is due. It is never recorded for training or tuning | `ML-10` |
 | D14 | Agent workflow | Decided 2026-11-12: a task may start once its After tasks are merged, except after a gate; a new optional contract or configuration key needs one owner's approval. Recording days per laptop: open | `AGENTS.md` |
+| D15 | State reading | Decided 2026-11-16: no trained per-state classifiers. Screws: change of the slot crop from its stored reference, plus a tool-contact event (tip in the slot, then lift); backup: a count of loose screws in the mat's screw-tray zone. Memory and drives: crop change plus LiDAR depth (raised or out). Cover: rise of the face plane (LiDAR) plus a large change across the face; `released` is no longer read by the camera, and pry-tool contact at the seam covers prying. Battery connector: a change raises the question, the VLM always confirms, and a tap never clears the hazard. When signals disagree: the VLM on the crop, then a tap. More facts are recorded as inferred | `ML-04`, `ML-08`, `ML-15`, `REF-04`, `REF-07` |
+| D16 | Models | Decided 2026-11-16: kept separate. Screw detector (1280 px, once per face), part detector (640 px, once per interior face, trained per laptop while D12 is open), tool model (every changed frame), and one shared frozen crop embedder (MobileNetV3 class) for every change check. MobileSAM stays on the server. A merged model would run at 1280 px on every changed frame (about four times the cost), need every class labelled in every image, and tie the retraining of one model to the others | `ML-12`, `IOS-05` |
+| D17 | Tool model output | Open: YOLO26n-seg or YOLO26n-pose (tip and handle keypoints). An ADR inside `ML-09` decides | `ML-09`, `DATA-04` |
+| D18 | Part classes and face detection | Proposed 2026-11-16, not confirmed: add `wifi_card` and `sata_drive` to the part classes; decide which face is up by a rule over detections, not a model. Nothing in Section 8 depends on it yet | `ML-03` |
 
 Laptop criteria for D1: not Apple; two from one maker and one from another; available for the whole project with a spare bottom cover; a public service manual for the exact model number; an internal battery with a connector; between them a memory slot, an M.2 or 2.5-inch drive, and at least one screw hidden under a foot or label. The unseen laptop (D13) also needs a public service manual and an internal battery connector.
 
@@ -95,7 +99,7 @@ Either PC is enough (D7). The server's work is light: MobileSAM for outlines, th
 The mat is a printed sheet that the laptop sits on, with square black-and-white markers at known positions. From any frame that shows a few markers, the app knows where the mat is in 3D and how large a millimetre is. That is what keeps widgets locked to screws while hands cover the laptop.
 
 - `AS-01` generates the print file. Nothing to design by hand.
-- A2 sheet, matte. A laptop outline in the centre, a ring of markers just outside it, and four corner markers.
+- A2 sheet, matte. A laptop outline in the centre, a ring of markers just outside it, four corner markers, and a marked screw-tray zone where removed screws are placed (D15).
 - Print at 100% scale and check the printed 100 mm bar (`HW-03`). For early tests, print the tiled A4 version and tape it to a board.
 
 ## 3. How the work is organised
@@ -107,8 +111,8 @@ Work is split into lanes. A lane owns folders, and only tasks in that lane chang
 | BOOT | Bootstrap | repo root, `contracts/`, `scripts/`, `.github/` | all three | 21 |
 | HW | Hardware and accounts | `docs/hardware.md`, `docs/vlm-costs.md` | H-APP | 15 |
 | CORE | Guidance logic (Swift, builds on Linux) | `core/` | H-SYS | 63 |
-| ML | Models and datasets (Python) | `ml/` | H-ML | 88 |
-| REF | Reference pipeline on recordings (Python) | `pyref/` | H-ML | 40 |
+| ML | Models and datasets (Python) | `ml/` | H-ML | 84 |
+| REF | Reference pipeline on recordings (Python) | `pyref/` | H-ML | 44 |
 | SRV | Server | `server/` except the two folders below | H-SYS | 20 |
 | GR | Procedure graphs | `server/graph_builder/`, `graphs/`, `resources/` | H-SYS | 47 |
 | VLM | VLM adapter | `server/vlm/` | H-SYS | 17 |
@@ -127,7 +131,7 @@ Three human roles, placeholders until they are assigned to names: **H-SYS** (log
 
 **Who** column:
 
-- **Agent**: an AI coding agent does the work end to end; the lane's human owner reviews and merges. 58 tasks, 344 hours of human time for specifying, reviewing and checking.
+- **Agent**: an AI coding agent does the work end to end; the lane's human owner reviews and merges. 59 tasks, 344 hours of human time for specifying, reviewing and checking.
 - **Pair**: a human at the keyboard or bench with an agent. 156 hours.
 - **Human**: cannot be delegated: buying, printing, recording, auditing labels, the study. 173 hours.
 
@@ -184,14 +188,14 @@ Datasets, recordings, model weights and API keys never enter git.
 | # | Contract | File | Used by |
 | --- | --- | --- | --- |
 | C1 | Procedure graph: schema from report Section 4.9, plus the structured motion field | `contracts/graph.schema.json` | CORE, GR, IOS |
-| C2 | Observations: fact readings with scores and hidden share, contacts, registration trust, timestamps | `contracts/observations.schema.json` | REF, CORE, IOS, EV |
+| C2 | Observations: fact readings with scores and hidden share, the source of each reading (change, contact, depth, tray, VLM or tap), contacts, registration trust, timestamps | `contracts/observations.schema.json` | REF, CORE, IOS, EV |
 | C3 | Configuration: every setting in report Table 6.3, with provisional values | `config/anchor.default.json` and its schema | all |
 | C4 | Recording: a clip folder with RGB, depth, poses, intrinsics, events, metadata, and an optional occluder mask. Stray Scanner clips convert into it | `contracts/recording.md` | DATA, REF, IOS, ML |
 | C5 | Server API. A VLM reply carries the model, prompt version and latency, so the app can log them (report Table 4.10) | `contracts/server.openapi.yaml` | SRV, GR, VLM, IOS |
 | C6 | Session log: one JSON line per event | `contracts/log.schema.json` | CORE, EV, IOS |
 | C7 | Model card: name, input size, classes, output decoding, export settings | `contracts/model-card.schema.json` | ML, REF, IOS |
 | C8 | Asset manifest: tool names, the detector class of each tool (C9), files, tip offset, allowed motions | `contracts/asset-manifest.schema.json` | AS, GR, IOS |
-| C9 | Class sheet: component, tool and screw-state classes with one definition each | `contracts/classes.yaml` | ML, DATA, REF |
+| C9 | Class sheet: component and tool classes with one definition each, plus the names of the change signals (D15). No screw-state classes | `contracts/classes.yaml` | ML, DATA, REF |
 | C10 | Widget commands: what the trigger policy hands the renderer | `contracts/widget-commands.schema.json` | CORE, IOS |
 
 `BOOT-03` also answers, in its list of open questions, four report points that every agent would otherwise stop on:
@@ -237,7 +241,7 @@ flowchart LR
 | Phase | Content | Hours | Tasks |
 | --- | --- | --- | --- |
 | 0 | Bootstrap, hardware and accounts | 38 | 13 |
-| A | Work that needs no Apple build tools | 285 | 52 |
+| A | Work that needs no Apple build tools | 285 | 53 |
 | B | Device bring-up | 53 | 7 |
 | C | Slices | 47 | 6 |
 | D | Full system | 132 | 14 |
@@ -250,7 +254,7 @@ Phases 0 and A run before FYP-II. Phases B to E map onto its sixteen weeks: B in
 | Gate | Closes | Passes when | If it fails |
 | --- | --- | --- | --- |
 | GA | Phase A | `REF-05`: on laptop 1's two clean-run clips, the offline pipeline recognises at least 90% of steps | Fix perception in `pyref/` first. Do not port a pipeline that does not work offline |
-| G0 | Phase B | `IOS-05`: all tier B models together take at most 150 ms per processed frame on the iPhone 13 Pro Max | Fewer crops per batch, smaller tool model, lower processing rate |
+| G0 | Phase B | `IOS-05`: the tool model plus the crop embeddings together take at most 150 ms per processed frame on the iPhone 13 Pro Max | Fewer crops per batch, smaller tool model, lower processing rate |
 | G1 | Phase C, first half | `IOS-11`: a person completes laptop 1's storage task guided by taps; rings within 5 mm of the screws | Fix registration and rendering before adding the camera |
 | G2 | Phase C | `IOS-13`: the same task driven by the camera meets NFR-02 (next step within 2 s, 95th percentile) on the bench; `ML-07` at 0.85 AP50 or better | Hold scope at one laptop and one task until it passes |
 | G3 | Phase D | `INT-01`: three laptops by three tasks run on the bench with all six widgets | Cut optional items first: `SRV-05` and FR-17 (which has no task yet). `GR-07` is not optional: FR-21 is a Must |
@@ -310,38 +314,39 @@ Paths: `core/`. Human owner: H-SYS. Lane total: 63 h.
 
 ### ML: Models and datasets (Python)
 
-Paths: `ml/`. Human owner: H-ML. Lane total: 88 h.
+Paths: `ml/`. Human owner: H-ML. Lane total: 84 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ML-01` | Dataset tooling: converters, manifests with hashes, split-by-source enforcement, class sheet (C9) | Agent | DATA | BOOT-03 | 5 | Existing screw and component sets load through the tooling; a frame-level split is rejected | Dataset cards with source and licence |
+| `ML-01` | Dataset tooling: converters, manifests with hashes, split-by-source enforcement, class sheet (C9) | Agent | DATA | BOOT-03 | 5 | Existing screw and component sets load through the tooling; a frame-level split is rejected | Dataset cards with source and licence, including the optional pre-training sets noted on 2026-11-16: Roboflow `presence_absence`, the Fraunhofer connector set (Zenodo record 18267392) and BusyHands |
 | `ML-02` | Evaluation harness: AP50, bootstrap intervals, per class and per source, paired tests | Agent | GPU | ML-01 | 5 | Reproduces the phase-2 screenshots: YOLO26n screws 0.734 and the component table | Any number that does not reproduce, and why |
 | `ML-03` | Relabel the 176 component test images; add SSD and battery-connector classes; one definition per class | Pair | DATA | ML-01 | 4 | Every visible part is boxed; class sheet updated | AP before and after, standard and federated |
-| `ML-04` | Screw crop classifier v0 (head, hole, covered): head and hole from the Lenovo screw boxes, covered from hand and tool cut-outs pasted over clean crops | Agent | GPU | ML-01 | 5 | Macro-F1 reported on a held-out source | Confusion matrix; a sheet of failure crops |
+| `ML-04` | Crop change detector v0 (D15): a frozen embedder (MobileNetV3 class) and the distance of a crop to its stored reference; tested on Lenovo head and hole pairs and on pasted occluders | Agent | GPU | ML-01 | 5 | AUROC of change against no change reported on a held-out source | Score distributions; a sheet of failure crops; the embedder chosen |
 | `ML-05` | Laptop screw detector: fine-tune YOLO26n from the WEEE checkpoint | Agent | GPU | ML-02 | 4 | AP50 with interval on held-out laptop screws | Recall on recessed and dark-on-dark screws |
 | `ML-06` | Enrolment tool: one click per clip, video-segmenter propagation, boxes and masks, review export | Agent | GPU | ML-01 | 8 | A 60-second clip is labelled with at most five minutes of human time | Minutes of human time per clip |
 | `ML-07` | Enrol laptop 1's components and fine-tune YOLO26n | Pair | GPU LAPTOPS | ML-06, DATA-03 | 4 | AP50 at least 0.85 on a held-out recording day | AP per class |
-| `ML-08` | State readers: change from the stored reference, then a classifier per kind | Agent | GPU | ML-07, ML-12 | 10 | Macro-F1 at least 0.90 on a held-out recording day; the state readers and the `ML-07` detector exported with the `ML-12` command, each with a model card | Which states still need the VLM |
-| `ML-09` | Tool model: YOLO26n-seg, tip from the mask, copy-paste and synthetic augmentation | Agent | GPU KIT | ML-06, DATA-04, AS-04, ML-12 | 12 | AP50 at least 0.90 per class; median tip error at most 5 mm; plastic and metal confused in at most 5% of confident detections; exported with the `ML-12` command and a model card | Tip error distribution; hover-against-touch separation |
+| `ML-08` | State readers (D15): change from the stored reference with the shared embedder, plus LiDAR depth for raised or out and for cover lift; no per-kind classifiers | Agent | GPU | ML-07, ML-12 | 6 | F1 at least 0.90 for changed against unchanged on a held-out recording day; the battery connector is routed to the VLM; the `ML-07` detector exported with the `ML-12` command and a model card | Which states still need the VLM |
+| `ML-09` | Tool model: YOLO26n-seg or YOLO26n-pose (tip and handle keypoints), chosen by an ADR in this task (D17); copy-paste and synthetic augmentation | Agent | GPU KIT | ML-06, DATA-04, AS-04, ML-12 | 12 | AP50 at least 0.90 per class; median tip error at most 5 mm; plastic and metal confused in at most 5% of confident detections; exported with the `ML-12` command and a model card | ADR: segmentation or pose; tip error distribution; hover-against-touch separation |
 | `ML-10` | Enrol laptops 2 and 3; leave-one-laptop-out study with augmentation; a test on the unseen laptop (D13) once it arrives | Pair | GPU LAPTOPS | ML-07, DATA-06, ML-12 | 8 | A curve of unseen-laptop AP50 against the number of training laptops; the models for laptops 2 and 3 exported with model cards | The result, whichever way it goes; it feeds D12 |
 | `ML-11` | Compare large localisation models on the relabelled test set | Agent | GPU KEYS | ML-03, HW-06 | 8 | A table of model by AP50, latency and cost. Its gate: every task-relevant part is localised in at least 80% of registration attempts on a laptop not in training | Whether perception can work without enrolment; it feeds D12 |
-| `ML-12` | Export command (`make export`): any model to ONNX and Core ML on x86 Linux, with a model card (C7). Run it on the screw models, and on same-architecture stand-ins for the tool model and the state readers so that G0 can be timed | Agent | GPU | ML-04, ML-05 | 4 | ONNX and PyTorch disagree on at most 1% of 200 inputs | Input size, classes and decode steps per model |
-| `ML-13` | Calibration: temperature scaling; propose `c_high` and `c_low` | Agent | DATA | ML-04, ML-08 | 4 | Reliability diagrams committed | Proposed values in `docs/measurements.md` |
+| `ML-12` | Export command (`make export`): any model to ONNX and Core ML on x86 Linux, with a model card (C7). Run it on the screw detector, and on stand-ins for the tool model and the crop embedder (the embedder itself once `ML-04` has chosen it), so that G0 can be timed | Agent | GPU | ML-04, ML-05 | 4 | ONNX and PyTorch disagree on at most 1% of 200 inputs | Input size, classes and decode steps per model |
+| `ML-13` | Calibration (D15): tune the change thresholds (embedding distance, depth difference) and the rule that fuses the signals, then propose `c_high` and `c_low`; temperature scaling for the tool model only | Agent | DATA | ML-04, ML-08, ML-09 | 4 | Reliability diagrams committed | Proposed values in `docs/measurements.md` |
 | `ML-14` | MobileSAM on components | Agent | GPU | ML-07 | 2 | Mask IoU on 100 reviewed component masks | - |
-| `ML-15` | Screw crop classifier v1 on the study laptops: crops cut automatically through registration from the screws-in and screws-out clips, covered class from real hand clips (added 2026-11-12) | Agent | GPU | ML-04, ML-12, REF-03, DATA-02 | 5 | Macro-F1 at least 0.95 on unoccluded slots of a held-out recording day; false hole readings counted per clip; exported with a model card | Every false hole reading: one would unlock prying early |
+| `ML-15` | Screw-fact fusion on the study laptops (D15): slot change, tool event and tray count together decide present or absent. A crop classifier is the fallback, with no hours here (added 2026-11-12, repurposed 2026-11-16) | Agent | DATA | ML-04, REF-03, DATA-02 | 5 | Screw facts scored on a held-out recording day; false hole readings counted per clip | Every false hole reading: one would unlock prying early |
 
 ### REF: Reference pipeline on recordings (Python)
 
-Paths: `pyref/`. Human owner: H-ML. Lane total: 40 h.
+Paths: `pyref/`. Human owner: H-ML. Lane total: 44 h.
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `REF-01` | Recording loader, Stray Scanner converter to C4, sync check, viewer | Agent | DATA | BOOT-03, HW-07 | 5 | The test clip loads; RGB, depth and pose line up within one frame | RGB resolution and frame rate of the clips |
 | `REF-02` | Mat pose: ArUco detection and pose solve in the odometry world frame | Agent | DATA | REF-01, HW-03 | 8 | Median reprojection error of mat corners at most 2 px on a moving clip | Jitter when markers are partly covered |
 | `REF-03` | Face plane, rigid 2D registration with RANSAC, slot projection, drift metric, on the cover face (the interior face comes in `REF-04`) | Agent | DATA | REF-02, ML-05, DATA-02 | 10 | Sticker reprojection error: median at most 3 mm, 95th percentile at most 5 mm | `min_inliers` and `max_error` values that worked |
-| `REF-04` | Perception runner that writes observations (C2): screw slots, cover and component states, interior-face registration from the `ML-07` landmarks, an occluder mask for the hidden share, SSIM skip | Agent | DATA | REF-03, ML-08, ML-15 | 8 | Observations validate against C2 on three clips | Per-stage time per frame on the PC; ADR naming the offline occluder source (for example height above the face plane from depth, or an open hand model) |
-| `REF-05` | End-to-end replay: recording to observations to `anchor-replay` to metrics | Agent | DATA | REF-04, CORE-09, EV-01, GR-03 | 4 | Both clean-run clips of laptop 1 yield a step-recognition report (gate GA) | The first end-to-end numbers; which VLM answers were scripted |
-| `REF-06` | Add tools, tips and contacts to the runner (LiDAR height against the face plane) | Agent | DATA | REF-04, ML-09 | 5 | On the staged hover and touch clips, touches are found and hovering hands raise no contact | `h_touch` and `min_time` values that separated hover from touch |
+| `REF-04` | Perception runner that writes observations (C2): change and depth readings for slots, cover and components, each with its source; interior-face registration from the `ML-07` landmarks; an occluder mask for the hidden share; SSIM skip | Agent | DATA | REF-03, ML-08, ML-15 | 8 | Observations validate against C2 on three clips | Per-stage time per frame on the PC; ADR naming the offline occluder source (for example height above the face plane from depth, or an open hand model) |
+| `REF-05` | End-to-end replay: recording to observations to `anchor-replay` to metrics | Agent | DATA | REF-04, REF-07, CORE-09, EV-01, GR-03 | 4 | Both clean-run clips of laptop 1 yield a step-recognition report (gate GA) | The first end-to-end numbers; which VLM answers were scripted |
+| `REF-06` | Add tools, tips and contacts to the runner (LiDAR height against the face plane); tool-contact events also feed the screw-removal inference (D15) | Agent | DATA | REF-04, ML-09 | 5 | On the staged hover and touch clips, touches are found and hovering hands raise no contact | `h_touch` and `min_time` values that separated hover from touch |
+| `REF-07` | Tray-zone screw count (the screw detector run on the tray region) and the cover check from the rise of the face plane (D15) (added 2026-11-16) | Agent | DATA | REF-03, ML-08, ML-15 | 4 | On laptop 1's clips the tray count matches the screws placed in the tray, and the cover check fires on the cover-lift clips and not on the hands-over clips | Miscounts and false cover readings, with their cause |
 
 ### SRV: Server
 
@@ -376,7 +381,7 @@ Paths: `server/vlm/`. Human owner: H-SYS. Lane total: 17 h.
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `VLM-01` | VLM adapter on the server: one request type per reason in report Table 5.9, plus graph building and task matching (FR-01), a mock, two providers | Agent | KEYS | SRV-01, HW-06 | 6 | The same test suite passes against the mock and both providers | - |
-| `VLM-02` | Compare candidates on 150 bench crops: accuracy, latency, cost per call | Pair | KEYS DATA | VLM-01, DATA-05 | 6 | A fast slot and a strong slot chosen | Cost per session at three calls a minute |
+| `VLM-02` | Compare candidates on 150 bench crops: accuracy, latency, cost per call (battery-connector and latch crops among them) | Pair | KEYS DATA | VLM-01, DATA-05 | 6 | A fast slot and a strong slot chosen | Cost per session at three calls a minute |
 | `VLM-03` | Versioned prompt files, replay tests, confidence calibration | Agent | KEYS | VLM-02 | 5 | Recorded request and answer pairs replay in CI without network | - |
 
 ### AS: Assets and mat
@@ -385,7 +390,7 @@ Paths: `assets/`, `tools/mat/`, `tools/blender/`. Human owner: H-APP. Lane total
 
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `AS-01` | Mat generator: A2 PDF, a tiled A4 variant, marker map in millimetres, 100 mm scale bar | Agent | - | BOOT-01 | 2 | PDF and marker map generated from one command | Marker dictionary, sizes and layout |
+| `AS-01` | Mat generator: A2 PDF, a tiled A4 variant, marker map in millimetres, 100 mm scale bar, screw-tray zone (D15) | Agent | - | BOOT-01 | 2 | PDF and marker map generated from one command | Marker dictionary, sizes and layout |
 | `AS-02` | Procedural tool models to USDZ and GLB, manifest (C8), automatic checks | Agent | - | BOOT-03 | 6 | Each model: origin at the tip, +Y along the axis, real size, under 5,000 triangles | Dimensions used (nominal until HW-02) |
 | `AS-03` | Motion and marker assets: arrows, pry wedge, ring, tick, badge, hazard glyph | Agent | - | BOOT-03 | 3 | All listed in the manifest and built by the same command | - |
 | `AS-04` | Synthetic tool renders with masks | Agent | - | AS-02 | 4 | 1,000 rendered images with masks in the dataset format | - |
@@ -398,10 +403,10 @@ Paths: `docs/recording/`, `data-manifests/` (raw data stays out of git). Human o
 | ID | Task | Who | Needs | After | h | Done when | Record |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `DATA-01` | Recording protocol: shot lists for sets A to E, consent form, clip naming | Pair | - | BOOT-03 | 3 | `docs/recording/protocol.md` approved by all three humans | - |
-| `DATA-02` | Laptop 1 perception recordings: screws in, out and half out; each component state; drift clips with stickers; two clean runs of the storage task | Human | LAPTOPS MAT PHONE | DATA-01, HW-01, HW-03, HW-07, HW-08 | 6 | Clips load through REF-01; the manifest lists each clip with its scripted state | Lighting, camera height, anything that went wrong |
+| `DATA-02` | Laptop 1 perception recordings: screws in, out and half out; each component state; drift clips with stickers; two clean runs of the storage task; screws placed in the tray; the cover lifted; hands and tools passing over slots (for the false-change rate) | Human | LAPTOPS MAT PHONE | DATA-01, HW-01, HW-03, HW-07, HW-08 | 6 | Clips load through REF-01; the manifest lists each clip with its scripted state | Lighting, camera height, anything that went wrong |
 | `DATA-03` | Label and audit laptop 1 clips with the enrolment tool | Human | DATA | DATA-02, ML-06 | 6 | Every validation and test frame reviewed; 10% of training frames sampled | Error rate found in the sample |
-| `DATA-04` | Tool recordings (25 to 30 clips), hover and touch clips at 1, 3 and 5 cm, labelling and audit, tips marked by hand on the test frames | Human | KIT MAT PHONE | DATA-01, HW-02, HW-03, HW-08, ML-06 | 10 | Whole clips from another day and operator held out as the test set | - |
-| `DATA-05` | 150 labelled crops for the VLM comparison | Human | DATA | DATA-02 | 3 | Each crop has a value label and a second annotator's check on a sample | Annotator agreement |
+| `DATA-04` | Tool recordings (25 to 30 clips), hover and touch clips at 1, 3 and 5 cm, labelling and audit, tips marked by hand on the test frames; if pose is chosen (D17), tip and handle marked on about 500 frames | Human | KIT MAT PHONE | DATA-01, HW-02, HW-03, HW-08, ML-06 | 10 | Whole clips from another day and operator held out as the test set | - |
+| `DATA-05` | 150 labelled crops for the VLM comparison, including battery-connector and latch crops | Human | DATA | DATA-02 | 3 | Each crop has a value label and a second annotator's check on a sample | Annotator agreement |
 | `DATA-06` | Laptops 2 and 3: perception recordings, labelling and audit | Human | LAPTOPS MAT PHONE | DATA-02, ML-06 | 14 | As DATA-02 and DATA-03, per laptop | - |
 | `DATA-07` | Sets A to C: clean runs, staged mistakes, hazard moments, with event times labelled from the video after the take (or with the app recorder's event button, if `IOS-03` exists by then) | Human | LAPTOPS MAT PHONE | DATA-01, DATA-02, GR-05 | 28 | Event times labelled; a second annotator re-labels a sample | Annotator agreement; takes that were discarded and why |
 
@@ -426,8 +431,8 @@ Paths: `ios/`. Human owner: H-APP. Lane total: 123 h.
 | `IOS-01` | Project generated from `project.yml`, AnchorCore linked, macOS CI build of an unsigned app, sideload install on the iPhone (D3) | Pair | MAC PHONE | HW-04, CORE-01 | 8 | The app launches on the iPhone 13 Pro Max from a CI build | Minutes per build and install |
 | `IOS-02` | ARKit session service: world tracking, scene depth, latest-frame-wins frame pump, thermal monitor, configuration loader | Agent | MAC PHONE | IOS-01 | 6 | Frames, pose and depth reach a test consumer at a logged rate | Frame resolution and rate on the device |
 | `IOS-03` | Recorder in the C4 format with an event button and a consent switch | Agent | MAC PHONE | IOS-02 | 8 | A recorded clip loads through REF-01 | - |
-| `IOS-04` | Debug overlay: slot crops and scores, gate runs, registration inliers, state | Agent | MAC PHONE | IOS-02 | 5 | Overlay toggles on the device and exports a screenshot | - |
-| `IOS-05` | Core ML runtime, batched slot crops, benchmark screen, parity against the Python outputs | Pair | MAC PHONE | IOS-02, ML-12 | 10 | Gate G0 numbers recorded; Core ML and Python disagree on at most 1% of 200 inputs | Time per model and per processed frame |
+| `IOS-04` | Debug overlay: slot crops and their change scores, gate runs, registration inliers, state | Agent | MAC PHONE | IOS-02 | 5 | Overlay toggles on the device and exports a screenshot | - |
+| `IOS-05` | Core ML runtime, crops batched through the embedder, benchmark screen, parity against the Python outputs | Pair | MAC PHONE | IOS-02, ML-12 | 10 | Gate G0 numbers recorded; Core ML and Python disagree on at most 1% of 200 inputs | Time per model and per processed frame |
 | `IOS-06` | Port mat pose and registration from `pyref`, with parity tests; the maths (pose solve, RANSAC, projection) sits in a Swift package that builds on Linux | Agent | MAC PHONE | IOS-02, REF-03 | 12 | Slot positions within 2 px of `pyref` on a recorded clip | ADR: how ArUco markers are detected on iOS (an OpenCV framework or another route) |
 | `IOS-07` | Hand mask test: ARKit person segmentation against Apple Vision hand pose at 30 to 50 cm | Pair | MAC PHONE | IOS-02 | 4 | ADR names the chosen source, or sends the work to a trained hand class | ADR with example frames. If both sources fail, a trained hand class is a new task with no hours in this plan: propose it |
 | `IOS-08` | Widget renderer: device-face anchor, W1 rings, component outline, hands hiding widgets | Agent | MAC PHONE | IOS-06 | 10 | Rings sit on laptop 1's screws while the camera moves | Ring error against the 5 mm target |
@@ -483,7 +488,7 @@ A wave is the set of tasks whose dependencies all sit in earlier waves. Tasks fr
 | 5 | `CORE-05`, `CORE-06`, `CORE-07`, `ML-05`, `ML-11`, `SRV-04`, `GR-01`, `GR-02`, `GR-03`, `DATA-03`, `DATA-04`, `DATA-05`, `DATA-06`, `IOS-02` | 7 of 14 | `ML-05`, `ML-11`, `SRV-04`, `GR-01`, `GR-03`, `DATA-03`, `DATA-04`, `DATA-05`, `DATA-06`, `IOS-02` |
 | 6 | `CORE-09`, `ML-07`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` | 9 of 12 | `ML-07`, `ML-12`, `REF-03`, `SRV-05`, `GR-04`, `VLM-02`, `IOS-03`, `IOS-04`, `IOS-07`, `IOS-10`, `IOS-12` |
 | 7 | `CORE-10`, `ML-08`, `ML-09`, `ML-10`, `ML-14`, `ML-15`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` | 9 of 12 | `ML-08`, `ML-09`, `ML-10`, `ML-14`, `ML-15`, `GR-05`, `GR-07`, `VLM-03`, `IOS-05`, `IOS-06`, `IOS-15` |
-| 8 | `ML-13`, `REF-04`, `GR-06`, `DATA-07`, `IOS-08` | 4 of 5 | `ML-13`, `REF-04`, `GR-06`, `DATA-07`, `IOS-08` |
+| 8 | `ML-13`, `REF-04`, `REF-07`, `GR-06`, `DATA-07`, `IOS-08` | 5 of 6 | `ML-13`, `REF-04`, `REF-07`, `GR-06`, `DATA-07`, `IOS-08` |
 | 9 | `REF-05`, `REF-06`, `IOS-09`, `IOS-11` | 3 of 4 | `REF-05`, `REF-06`, `IOS-09`, `IOS-11` |
 | 10 | `EV-02`, `EV-03`, `IOS-13` | 2 of 3 | `EV-02`, `IOS-13` |
 | 11 | `IOS-14`, `IOS-16` | 0 of 2 | `IOS-14`, `IOS-16` |
@@ -516,7 +521,7 @@ Every finished task leaves a note at `notes/<TASK-ID>.md` (template in `AGENTS.m
 | `docs/risks.md` | New risks and surprises, with the task that found them | The team, at each gate |
 | `results/<run>/` | Metric files with the configuration hash and the data manifest hash | Evaluation chapters |
 
-`docs/report-deltas.md` starts with these entries: the 6-DoF mat pose in place of two homographies; movement widgets in 3D; the structured motion field in the graph schema; a 5 mm internal target under NFR-04's 2 cm; rings instead of masks on screws; the optional localisation service; VLM calls routed through the server; the Python reference pipeline as test oracle; tool masks, with the tip taken from the mask (the report uses boxes); hand masks from ARKit or Apple Vision (report Table 6.2 names the detector); component state read as change from a stored reference; no Mac in the build route (report 2.7 and 4.7.1 say development needs one). Recording each study laptop is added as a delta if D12 keeps it: report 3.5 says ANCHOR needs no recording per laptop.
+`docs/report-deltas.md` starts with these entries: the 6-DoF mat pose in place of two homographies; movement widgets in 3D; the structured motion field in the graph schema; a 5 mm internal target under NFR-04's 2 cm; rings instead of masks on screws; the optional localisation service; VLM calls routed through the server; the Python reference pipeline as test oracle; tool masks or keypoints, still open (D17; the report uses boxes); hand masks from ARKit or Apple Vision (report Table 6.2 names the detector); component state read as change from a stored reference; no Mac in the build route (report 2.7 and 4.7.1 say development needs one); screws read by change plus contact, not by a three-way classifier (report 5.4.2); the cover value `released` is not read by the camera (report Table 5.3); more facts are recorded as inferred; a screw-tray zone on the mat. Recording each study laptop is added as a delta if D12 keeps it: report 3.5 says ANCHOR needs no recording per laptop.
 
 `docs/measurements.md`, `docs/report-deltas.md` and `docs/risks.md` are append-only and use the union merge rule, so parallel pull requests do not conflict.
 
@@ -524,7 +529,7 @@ A number that is not produced by a committed script, with both hashes, does not 
 
 ## 12. Budget
 
-- Planned: 673 human hours across 101 tasks. With a 15% contingency (101 hours): 774.
+- Planned: 673 human hours across 102 tasks. With a 15% contingency (101 hours): 774.
 - By mode: 344 hours on agent-led tasks, 156 on pair tasks, 173 on human-only tasks.
 - Before FYP-II (Phases 0 and A): 323 hours, almost all of it without Apple hardware. During FYP-II (Phases B to E): 350 hours, about 7.3 hours per person per week for three people over sixteen weeks, before contingency.
 - GPU: about 30 to 40 hours of unattended training on the active GPU PC, one job at a time.
@@ -535,6 +540,8 @@ These are planning estimates. After the first wave, compare actual hours with th
 The implementation plan document estimated 685 hours by work package. This file re-cuts the same work into tasks and adds the Python reference pipeline, which the lack of a Mac makes necessary; the totals agree to within 2%.
 
 Revised 2026-11-12: `ML-15` added (5 h) and `BOOT-02` raised from 3 h to 5 h. The other hours are unchanged, although several tasks gained scope; rescale them after the first wave.
+
+Revised 2026-11-16 (D15): `ML-08` falls from 10 h to 6 h and `REF-07` adds 4 h, so the total does not change. Rescale after the first wave.
 
 ## 13. Changing this plan
 

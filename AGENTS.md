@@ -141,7 +141,7 @@ These restate the report. Code, prompts and tests must never break them. If a ta
 12. **Swap by configuration.** Changing a detector file or the VLM provider needs no code change (NFR-06).
 13. **Privacy.** Camera frames are stored only with consent, off by default (NFR-07).
 14. **A hazard warning cannot be dismissed.** W5 clears only on evidence. Only W6 can be dismissed (FR-11).
-15. **A missing detection is never evidence.** A screw is absent only when an empty hole is seen.
+15. **A missing detection is never evidence.** A slot or part counts as changed only when its crop clearly differs from its stored reference while nothing covers it. Glare, blur and a hand over the part read as unknown. A screw is absent only when the signals of `PLAN.md` D15 agree; when they disagree, the VLM is asked, then the user.
 16. **Assumed values start at the dangerous value.** The battery connector starts as plugged.
 17. **No borrowed procedure.** A graph is never made by adapting another device's procedure. A related model's resources are supporting evidence only, never the base or the only source (report 5.3.5, FR-03).
 
